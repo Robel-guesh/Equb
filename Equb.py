@@ -25,6 +25,8 @@ current_user=''
 user_role='user'
 window_icon='./image/icon.ico'
 Tera=ImageFont.truetype('./font/Tera-Regular.ttf')
+page_size=4
+current_page=1
 equb_type=[]
 equb_type_list=[]
 customer_list=[]
@@ -346,8 +348,11 @@ def display_main_window():
     main_window_submenu.add_command(label='መሐለውታ ፋይል ኣቐምጥ',command=create_backup_file)
     # main_window_submenu.add_command(label='መለለዪ ካርዲ ኣሕትም',command=print)
     main_window_submenu.add_command(label='ዕፆ',command=close_main_window)
+    global search_photo
     search_photo=PhotoImage(file='./image/search.png')
     close_photo=PhotoImage(file='./image/close.png')
+    back_icon=PhotoImage(file='./image/back.png')
+    next_icon=PhotoImage(file='./image/next.png')
     def edit_profile():
         main_notebook.select(3)
         profile_frame.grid(row=0,column=0,padx=20,sticky='n')
@@ -434,13 +439,37 @@ def display_main_window():
         payment_equb_type_entry.focus()
         payment_customer_name_entry.focus()
         find_and_fill_payment_entries_from_enrollment()
-    def fill_unpaid_lister():
+    
+    def handle_page(status):
+        global current_page
         unpaid_customers=fetch_data('*','equb_enrollment')
-        # print('before')
-        # for widget in unpaid_lister_main_frame.winfo_children():
-        #     print(widget)
-            # widget.destroy()
-        for i,customer_name in enumerate(unpaid_customers):
+        total_elements=len(unpaid_customers)
+        total_pages = total_elements // page_size + (1 if total_elements % page_size else 0)
+        if status=='prev':
+            
+            current_page-=1
+            if current_page<1:
+                current_page=total_pages
+        if status=='next':
+            
+            current_page+=1   
+            if (current_page>total_pages):
+                
+                current_page=1
+        
+        fill_unpaid_lister(current_page)
+    def fill_unpaid_lister(current_page):
+        unpaid_customers=fetch_data('*','equb_enrollment')
+        # total_elements=len(unpaid_customers)
+        # total_pages = total_elements // page_size + (1 if total_elements % page_size else 0)
+        
+        starting_element=(page_size*current_page)-page_size
+        end_element=(page_size*current_page)-1
+        paged_customers = unpaid_customers[starting_element:end_element + 1]
+        
+        for widget in unpaid_lister_main_frame.winfo_children():
+            widget.destroy()
+        for i, customer_name in enumerate(paged_customers, start=starting_element):
             
             unpaid_lister_child_frame=ttk.Frame(unpaid_lister_main_frame,width=int(screen_width*0.25)-50,height=90)
             unpaid_lister_child_frame.grid(row=i,column=1,padx=5,pady=3)
@@ -477,13 +506,16 @@ def display_main_window():
     
     profile_picture_frame=ttk.Frame(registration_container_frame,width=screen_width*0.25,height=515)
     # profile_picture_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
-    unpaid_lister_main_frame=Frame(registration_container_frame,width=screen_width*0.25,height=515)
-    # unpaid_lister_main_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
-    unpaid_lister_veritca_scroll_bar=ttk.Scrollbar(registration_container_frame,orient=VERTICAL)
-    unpaid_lister_veritca_scroll_bar.pack(side='right',fill='y')                                          #    ,command=unpaid_lister_main_frame.yview)
+    unpaid_lister_main_frame=Frame(registration_container_frame,width=screen_width*0.25,height=460,background='black')
+    # unpaid_lister_main_frame.pack(side=LEFT,anchor='n',padx=25,pady=10)
+    # unpaid_lister_veritca_scroll_bar=ttk.Scrollbar(registration_container_frame,orient=VERTICAL)
+    # unpaid_lister_veritca_scroll_bar.pack(side='right',fill='y')                                          #    ,command=unpaid_lister_main_frame.yview)
     # unpaid_lister_veritca_scroll_bar.place(relheight=1,relx=0.97,rely=0)
-    
-    fill_unpaid_lister()
+    unpaid_prev_buttton=ttk.Button(registration_container_frame,text='ዝሓለፈ ገፅ',command=lambda : handle_page('prev'))
+    # unpaid_prev_buttton.place(relx=0.019,rely=0.935)
+    unpaid_next_buttton=ttk.Button(registration_container_frame,text='ቀፃሊ ገፅ',command=lambda : handle_page('next'))
+    # unpaid_next_buttton.place(relx=0.158,rely=0.935)
+    fill_unpaid_lister(1)
     # unpaid_lister_main_frame.configure(yscrollcommand=unpaid_lister_veritca_scroll_bar.set)
 
     
@@ -565,6 +597,8 @@ def display_main_window():
         profile_picture_frame.pack_forget()
         clear_customer_info_lables()
         unpaid_lister_main_frame.pack_forget()
+        unpaid_next_buttton.place_forget()
+        unpaid_prev_buttton.place_forget()
     def display_profile_picture_frame():
         profile_picture_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
         
@@ -572,9 +606,11 @@ def display_main_window():
     
     def display_payment_frame():
         clear_customer_and_enrollment_frame()
-        unpaid_lister_main_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
+        unpaid_lister_main_frame.pack(side=LEFT,anchor='n',padx=25,pady=10,expand=False)
         payment_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
         display_profile_picture_frame()
+        unpaid_prev_buttton.place(relx=0.019,rely=0.935)
+        unpaid_next_buttton.place(relx=0.158,rely=0.935)
         # payment_customer_name_entry.focus()
     def display_register_customer_frame():
         clear_customer_and_enrollment_frame()
