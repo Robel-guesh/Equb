@@ -1,0 +1,298 @@
+i want to design a database management system for a lottery system the lottery have members, if a customer registers in daily lottery he needs to pay daily , if registered in weekly pays weekly , if registered in monthly pays monthly, if there are 30 members in each type of the lottery every one pays until the round is finished , the lottery is drawn daily , weekly , and monthly until all members get their money back and the members who got lottery need to registered each round, the main difficulty i got is that i was unable to distinguish members who pays and not payed , who got lottery and not got , give me brief database structure and example code with sqlite3
+
+
+1:Members Table:
+
+    Stores information about lottery participants.
+    Fields: member_id (Primary Key), name, registration_date, registration_type (daily, weekly, monthly), paid_until (date          until        paid).
+    
+    CREATE TABLE Members (
+    member_id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    registration_date DATE NOT NULL,
+    registration_type TEXT NOT NULL,
+    paid_until DATE
+);
+2:Lottery Rounds Table:
+
+    Keeps track of each round of the lottery (daily, weekly, monthly).
+    Fields: round_id (Primary Key), round_type (daily, weekly, monthly), draw_date (date when winners are drawn).
+
+
+CREATE TABLE LotteryRounds (
+    round_id INTEGER PRIMARY KEY,
+    round_type TEXT NOT NULL,
+    draw_date DATE NOT NULL
+);
+
+3,Payments Table:
+
+    Records payments made by members.
+    Fields: payment_id (Primary Key), member_id (Foreign Key referencing Members), payment_date, amount, round_id (Foreign Key referencing LotteryRounds).
+    
+    CREATE TABLE Payments (
+    payment_id INTEGER PRIMARY KEY,
+    member_id INTEGER NOT NULL,
+    payment_date DATE NOT NULL,
+    amount REAL NOT NULL,
+    round_id INTEGER NOT NULL,
+    FOREIGN KEY (member_id) REFERENCES Members(member_id),
+    FOREIGN KEY (round_id) REFERENCES LotteryRounds(round_id)
+);
+
+4, Winners Table:
+
+    Tracks winners of each round.
+    Fields: winner_id (Primary Key), member_id (Foreign Key referencing Members), round_id (Foreign Key referencing LotteryRounds).
+    
+    CREATE TABLE Winners (
+    winner_id INTEGER PRIMARY KEY,
+    member_id INTEGER NOT NULL,
+    round_id INTEGER NOT NULL,
+    FOREIGN KEY (member_id) REFERENCES Members(member_id),
+    FOREIGN KEY (round_id) REFERENCES LotteryRounds(round_id)
+);
+
+
+example code 
+
+import sqlite3
+from datetime import date
+
+# Connect to SQLite database
+conn = sqlite3.connect('lottery.db')
+cursor = conn.cursor()
+
+# Create tables if they do not exist
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS Members (
+        member_id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        registration_date DATE NOT NULL,
+        registration_type TEXT NOT NULL,
+        paid_until DATE
+    )
+''')
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS LotteryRounds (
+        round_id INTEGER PRIMARY KEY,
+        round_type TEXT NOT NULL,
+        draw_date DATE NOT NULL
+    )
+''')
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS Payments (
+        payment_id INTEGER PRIMARY KEY,
+        member_id INTEGER NOT NULL,
+        payment_date DATE NOT NULL,
+        amount REAL NOT NULL,
+        round_id INTEGER NOT NULL,
+        FOREIGN KEY (member_id) REFERENCES Members(member_id),
+        FOREIGN KEY (round_id) REFERENCES LotteryRounds(round_id)
+    )
+''')
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS Winners (
+        winner_id INTEGER PRIMARY KEY,
+        member_id INTEGER NOT NULL,
+        round_id INTEGER NOT NULL,
+        FOREIGN KEY (member_id) REFERENCES Members(member_id),
+        FOREIGN KEY (round_id) REFERENCES LotteryRounds(round_id)
+    )
+''')
+
+# Example: Inserting a member
+def add_member(name, registration_date, registration_type):
+    cursor.execute('''
+        INSERT INTO Members (name, registration_date, registration_type)
+        VALUES (?, ?, ?)
+    ''', (name, registration_date, registration_type))
+    conn.commit()
+
+# Example: Inserting a payment
+def add_payment(member_id, payment_date, amount, round_id):
+    cursor.execute('''
+        INSERT INTO Payments (member_id, payment_date, amount, round_id)
+        VALUES (?, ?, ?, ?)
+    ''', (member_id, payment_date, amount, round_id))
+    conn.commit()
+
+# Example: Inserting a winner
+def add_winner(member_id, round_id):
+    cursor.execute('''
+        INSERT INTO Winners (member_id, round_id)
+        VALUES (?, ?)
+    ''', (member_id, round_id))
+    conn.commit()
+
+# Example usage:
+if __name__ == '__main__':
+    # Add a member
+    add_member('John Doe', date(2024, 6, 20), 'daily')
+    
+    # Add a payment
+    add_payment(1, date(2024, 6, 20), 10.0, 1)  # Assuming member_id=1 for John Doe and round_id=1 for a daily round
+    
+    # Add a winner
+    add_winner(1, 1)  # Assuming member_id=1 won in round_id=1
+
+# Close connection
+conn.close()
+
+
+
+
+***********************************************************************************************************************************
+student database
+
+CREATE TABLE Students (
+    student_id INTEGER PRIMARY KEY,
+    student_name TEXT NOT NULL,
+    date_of_birth DATE,
+    address TEXT
+    -- Additional fields as needed
+);
+
+
+CREATE TABLE Teachers (
+    teacher_id INTEGER PRIMARY KEY,
+    teacher_name TEXT NOT NULL,
+    qualification TEXT,
+    -- Additional fields as needed
+);
+
+CREATE TABLE Courses (
+    course_id INTEGER PRIMARY KEY,
+    course_name TEXT NOT NULL,
+    credits INTEGER,
+    description TEXT
+    -- Additional fields as needed
+);
+
+CREATE TABLE Semesters (
+    semester_id INTEGER PRIMARY KEY,
+    semester_name TEXT NOT NULL,
+    start_date DATE,
+    end_date DATE
+    -- Additional fields as needed
+);
+
+CREATE TABLE Enrollments (
+    enrollment_id INTEGER PRIMARY KEY,
+    student_id INTEGER NOT NULL,
+    course_id INTEGER NOT NULL,
+    semester_id INTEGER NOT NULL,
+    teacher_id INTEGER NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES Students(student_id),
+    FOREIGN KEY (course_id) REFERENCES Courses(course_id),
+    FOREIGN KEY (semester_id) REFERENCES Semesters(semester_id),
+    FOREIGN KEY (teacher_id) REFERENCES Teachers(teacher_id)
+    -- Additional fields as needed
+);
+
+
+**********************************************************************************************************
+
+-- Insert a student
+INSERT INTO Students (student_name, date_of_birth, address)
+VALUES ('John Doe', '2005-03-15', '123 Main St');
+
+-- Insert a teacher
+INSERT INTO Teachers (teacher_name, qualification)
+VALUES ('Jane Smith', 'M.Sc. in Mathematics');
+
+-- Insert a course
+INSERT INTO Courses (course_name, credits, description)
+VALUES ('Mathematics 101', 3, 'Introduction to Algebra and Geometry');
+
+-- Insert a semester
+INSERT INTO Semesters (semester_name, start_date, end_date)
+VALUES ('Spring 2024', '2024-01-15', '2024-05-15');
+
+-- Enroll a student in a course for a semester
+INSERT INTO Enrollments (student_id, course_id, semester_id, teacher_id)
+VALUES (1, 1, 1, 1);  -- Assuming student_id=1, course_id=1, semester_id=1, teacher_id=1
+
+**************************************************************************************************
+
+-- Retrieve all courses a student is enrolled in
+SELECT Courses.course_name, Teachers.teacher_name, Semesters.semester_name
+FROM Enrollments
+JOIN Courses ON Enrollments.course_id = Courses.course_id
+JOIN Teachers ON Enrollments.teacher_id = Teachers.teacher_id
+JOIN Semesters ON Enrollments.semester_id = Semesters.semester_id
+WHERE Enrollments.student_id = 1;  -- Assuming student_id=1
+
+-- Retrieve all students enrolled in a course for a semester
+SELECT Students.student_name
+FROM Enrollments
+JOIN Students ON Enrollments.student_id = Students.student_id
+WHERE Enrollments.course_id = 1 AND Enrollments.semester_id = 1;  -- Assuming course_id=1, semester_id=1
+ 
+ 
+ 
+ 
+ import tkinter as tk
+from tkinter import ttk
+from tkinter import messagebox
+from PIL import Image, ImageTk
+import sqlite3
+
+# Function to display the photo
+def display_photo():
+    selected_item = treeview.selection()
+    if selected_item:
+        item = treeview.item(selected_item)
+        profile_id = item['values'][0]  # Assuming first column is the profile id
+        profile_name = item['values'][1]  # Assuming second column is the profile name
+        photo_path = item['values'][2]  # Assuming third column is the photo path
+        
+        if photo_path:
+            try:
+                image = Image.open(photo_path)
+                image = image.resize((200, 200), Image.ANTIALIAS)  # Resize image as needed
+                photo = ImageTk.PhotoImage(image)
+                photo_label.config(image=photo)
+                photo_label.image = photo  # Keep a reference to avoid garbage collection
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to load photo: {e}")
+        else:
+            messagebox.showinfo("Info", f"No photo available for {profile_name}.")
+
+# Tkinter setup
+root = tk.Tk()
+root.title("Profile Viewer")
+
+# Create treeview to display profiles
+treeview = ttk.Treeview(root, columns=("ID", "Name", "Photo Path"), show="headings")
+treeview.heading("ID", text="ID")
+treeview.heading("Name", text="Name")
+treeview.heading("Photo Path", text="Photo Path")
+treeview.pack()
+
+# Label to display the photo
+photo_label = tk.Label(root)
+photo_label.pack()
+
+# Connect to SQLite database
+conn = sqlite3.connect('your_database.db')
+cursor = conn.cursor()
+
+# Fetch data from database and populate treeview
+cursor.execute("SELECT id, name, photo_path FROM profiles")
+rows = cursor.fetchall()
+for row in rows:
+    treeview.insert("", "end", values=row)
+
+# Bind double click on treeview item to display photo
+treeview.bind("<Double-1>", lambda event: display_photo())
+
+root.mainloop()
+
+# Close the cursor and connection when done
+cursor.close()
+conn.close()
+
