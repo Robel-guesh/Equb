@@ -3839,14 +3839,14 @@ home_page.geometry(f"{screen_height}x{screen_width}+0+0")
 home_page.minsize(screen_width,screen_height)
 
 # Header Frame
-header_frame =Frame(home_page,height=screen_height*0.1,width=screen_width, background='green')
+header_frame =Frame(home_page,height=screen_height*0.1,width=screen_width, background='white')
 header_frame.grid(row=0,column=0)
 
-logo_label = ttk.Label(header_frame, image=small_equb_logo,background='green')
+logo_label = ttk.Label(header_frame, image=small_equb_logo,background='white')
 logo_label.place(x=0,y=0)
 # logo_label.grid(row=0,column=0,sticky='w')
 global title_label
-title_label=Label(header_frame,text=company_name,foreground='white',background='green' ,font=('bold',42))
+title_label=Label(header_frame,text=company_name,foreground='Green',background='white' ,font=('Arial',42,'bold'))
 title_label.place(x=0.4*screen_width,y=5)
 # title_label.place(relx=0.5,y=0,anchor='se')
 # title_label.grid(row=0,column=1,sticky='e')
@@ -3860,7 +3860,7 @@ left_frame.grid(row=0,column=0,pady=20,ipady=60,sticky='nsew')
 
 #photo frame
 right_frame =ttk.Frame(main_frame,height=screen_height*0.7,width=int(screen_width*0.50))
-right_frame.grid(row=0,column=1,sticky='nsew')
+right_frame.grid(row=0,column=1,sticky='e')
 #******************************************** main frame ********************
 log_in_image=PhotoImage(file='./image/login.png')
 small_login=log_in_image.subsample(4,4)
@@ -4021,8 +4021,11 @@ logged_user=user_name_entry.get()
 # user_name_error.grid(row=4,column=1,padx=5,pady=5,sticky='w')
 
 #********************************************* logo   ********************************
-background_image=ttk.Label(right_frame,image=background_photo)
+
+resized_background=background_photo.subsample(2,2)
+background_image=ttk.Label(right_frame,image=resized_background)
 background_image.grid( row=0,column=0,padx=0,pady=5,sticky='e')
+# display_profile_picture(background_photo,background_image,(348,511))
 #***************************************************user name form ******************************
 # def password_event(event):
 #     if len(password_entry.get())>0 and len(password_entry.get())<8:
