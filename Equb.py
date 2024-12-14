@@ -351,6 +351,8 @@ def display_main_window():
     global search_photo
     global back_icon
     global next_icon
+    global clock_photo
+    clock_photo=PhotoImage(file='./image/clock.png')
     search_photo=PhotoImage(file='./image/search.png')
     close_photo=PhotoImage(file='./image/close.png')
     back_icon=PhotoImage(file='./image/back.png')
@@ -375,13 +377,13 @@ def display_main_window():
             if updated_photo!=None:
                 user_profile_photo_entry.insert(END,updated_photo[0])
                 display_profile_picture(updated_photo[0], user_profile_photo_label)
-    header_frame=Frame(main_window,width=screen_width,height=screen_height*0.1,background='darkblue')
+    header_frame=Frame(main_window,width=screen_width,height=screen_height*0.1,background='green')
     header_frame.grid(row=0,column=0)
-    logo_label = ttk.Label(header_frame, image=small_equb_logo,background='darkblue')
+    logo_label = ttk.Label(header_frame, image=small_equb_logo,background='green')
     logo_label.place(x=0,y=0)
-    title_label=Label(header_frame,text=company_name,foreground='yellow',background='darkblue',font=('bold',48)).place(x=int(0.4*screen_width),y=5)
+    title_label=Label(header_frame,text=company_name,foreground='white',background='green',font=('bold',48)).place(x=int(0.4*screen_width),y=5)
     
-    logged_profile_photo_label = ttk.Label(header_frame, image=small_equb_logo,background='darkblue')
+    logged_profile_photo_label = ttk.Label(header_frame, image=small_equb_logo,background='green')
     logged_profile_photo_label.place(x=int(screen_width-85),y=2)
     display_logged_user_profile_picture(logged_user_photo,logged_profile_photo_label)
     edit_profile_button=ttk.Button(header_frame,text='መለለዪ ኣመሓይሽ',command=edit_profile)
@@ -618,7 +620,7 @@ def display_main_window():
             unpaid_equb_type_entry.set(equb_type_list[0])
     enrollment_frame=ttk.Frame(registration_container_frame,width=screen_width*0.25,height=515)
     # enrollment_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
-    profit_frame=Frame(registration_container_frame,width=screen_width*0.25,height=460)
+    profit_frame=ttk.Frame(registration_container_frame,width=screen_width*0.25,height=460)
     # profit_frame.pack(side='left')
     
 
@@ -672,24 +674,24 @@ def display_main_window():
         total_total_value_label.config(text=f"{fetched_total_amount}")
         total_punishment_value_label.config(text="")
         total_punishment_value_label.config(text=f"{fetched_punishment_amount}")
-    total_unpaid_label=ttk.Label(profit_frame,text="ዘይተኸፈለ ገንዘብ",font=('Arial',14,'bold'),width=15,compound='center')
+    total_unpaid_label=ttk.Label(profit_frame,text="ዘይተኸፈለ ገንዘብ",font=('Arial',14,'bold'),width=15,compound='center',foreground='white',background='green')
     total_unpaid_label.grid(row=1,column=1,padx=5,pady=5,columnspan=2)
     total_unpaid_value_label=ttk.Label(profit_frame,text=f"{fetched_unpaid_amount}",font=('Arial',14,'bold'),foreground='red',width=15,compound='center')
     total_unpaid_value_label.grid(row=2,column=1,padx=5,pady=0,columnspan=2)
     
-    total_paid_label=ttk.Label(profit_frame,text="ዝተኸፈለ ገንዘብ",font=('Arial',14,'bold'),width=15,compound='center')
+    total_paid_label=ttk.Label(profit_frame,text="ዝተኸፈለ ገንዘብ",font=('Arial',14,'bold'),width=15,compound='center',foreground='white',background='green')
     total_paid_label.grid(row=3,column=1,padx=5,pady=5,columnspan=2)
     total_paid_value_label=ttk.Label(profit_frame,text=f"{fetched_paid_amount}",font=('Arial',14,'bold'),foreground='blue',width=15,compound='center')
     total_paid_value_label.grid(row=4,column=1,padx=5,pady=0,columnspan=2)
     
 
-    total_total_label=ttk.Label(profit_frame,text="ከስቢ",font=('Arial',14,'bold'),width=15,compound='center')
+    total_total_label=ttk.Label(profit_frame,text="ከስቢ",font=('Arial',14,'bold'),width=15,compound='center',foreground='white',background='green')
     total_total_label.grid(row=5,column=1,padx=5,pady=5)
     total_total_value_label=ttk.Label(profit_frame,text=f"{fetched_total_amount}",font=('Arial',14,'bold'),foreground='green',width=15,compound='center')
     total_total_value_label.grid(row=6,column=1,padx=5,pady=0)
     
     
-    total_punishment_label=ttk.Label(profit_frame,text="ጠቕላላ ቅፅዓት",font=('Arial',14,'bold'),width=15,compound='center')
+    total_punishment_label=ttk.Label(profit_frame,text="ጠቕላላ ቅፅዓት",font=('Arial',14,'bold'),width=15,compound='center',foreground='white',background='green')
     total_punishment_label.grid(row=7,column=1,padx=5,pady=5)
     total_punishment_value_label=ttk.Label(profit_frame,text=f"{fetched_punishment_amount}",font=('Arial',14,'bold'),foreground='green',width=15,compound='center')
     total_punishment_value_label.grid(row=8,column=1,padx=0,pady=0)
@@ -990,13 +992,14 @@ def display_main_window():
     global register_user_name_entry
     register_user_name_label=ttk.Label(profile_frame,text='መጥቀሚ ሽም')
     register_user_name_label.grid(row=4,column=0,sticky='w',padx=5,pady=5)
-    register_user_name_entry=ttk.Entry(profile_frame,width=22)
+    register_user_name_entry=ttk.Entry(profile_frame,width=23)
     register_user_name_entry.grid(row=5,column=0,sticky='w',padx=5,pady=5)
     register_user_name_entry.bind('<Up>',lambda e:full_name_entry.focus())
     register_user_name_entry.bind('<Down>',lambda e:user_password_entry.focus())
     
-    fill_user_name_button=ttk.Button(profile_frame,width=5,text='🔍',command=generate_user_name)
+    fill_user_name_button=ttk.Label(profile_frame,width=4,image=search_photo)
     fill_user_name_button.grid(row=5,column=0,padx=2,pady=5,sticky='e')
+    fill_user_name_button.bind('<Button-1>',lambda e:generate_user_name())
     user_password_label=ttk.Label(profile_frame,text='መሕለፊ ቃል')
     user_password_label.grid(row=6,column=0,sticky='w',padx=5,pady=5)
     user_password_entry=ttk.Entry(profile_frame,width=30,show='*')
@@ -1005,7 +1008,7 @@ def display_main_window():
     user_password_entry.bind('<Down>',lambda e:role_entry.focus())
     role_label=ttk.Label(profile_frame,text='ሓላፍነት')
     global role_entry
-    role_entry=ttk.Combobox(profile_frame,width=28)
+    role_entry=ttk.Combobox(profile_frame,width=27)
     
     
     role_entry.bind('<Up>',lambda e:user_password_entry.focus())
@@ -1302,11 +1305,13 @@ def display_main_window():
     total_members_entry.bind('<Up>',lambda e:equb_amount_of_money_entry.focus())
     total_members_entry.bind('<Down>',lambda e:time_entry.focus())
     
-    time_label=ttk.Label(equb_settings_frame,text='ዕጫ ዝወድቀሉ ሰዓት  ')
+    time_label=ttk.Label(equb_settings_frame,text='ዕጫ ዝጅመረሉ ዕለት  ')
     time_label.grid(row=12,column=0,sticky='w',padx=5,pady=5)
-    time_entry=ttk.Entry(equb_settings_frame,width=30)
-    time_entry.grid(row=13,column=0,sticky='e',padx=5,pady=5)
-    
+    time_entry=ttk.Entry(equb_settings_frame,width=25)
+    time_entry.grid(row=13,column=0,sticky='w',padx=5,pady=5)
+    time_button=ttk.Label(equb_settings_frame,width=5,image=clock_photo)
+    time_button.grid(row=13,column=0,sticky='e',padx=5,pady=5)
+    time_button.bind('<Button-1>',lambda e: fill_date(time_entry))
     time_entry.bind('<Up>',lambda e:total_members_entry.focus())
     # tax_entry.bind('<Down>',lambda e:choose_photo_button.focus())
     # state_label=ttk.Label(equb_settings_frame,text='current state')
@@ -1455,10 +1460,10 @@ def display_main_window():
     date_label.grid(row=11,column=0,padx=3,pady=2,sticky='w')
     date_entry=ttk.Entry(registration_frame,width=30)
     date_entry.grid(row=12,column=0,padx=3,pady=2,sticky='w')
-    fill_date(date_entry)
     
-    fill_date_button=ttk.Button(registration_frame,text='⏱️',width=3,command=lambda : fill_date(date_entry))
+    fill_date_button=ttk.Label(registration_frame,image=clock_photo,width=3)
     fill_date_button.grid(row=12,column=0,padx=3,pady=2,sticky='e')
+    fill_date_button.bind('<Button-1>',lambda e :fill_date(date_entry))
 
 
     def select_photo():
@@ -1837,12 +1842,12 @@ def display_main_window():
     enrollment_date_entry.grid(row=12,column=0,padx=3,pady=3,sticky='w')
     enrollment_date_entry.bind('<Up>',lambda e:amount_entry.focus())
     enrollment_date_entry.bind('<Down>',lambda e:enrollment_search_entry.focus())
-    fill_date(enrollment_date_entry)
     # def fill_date_event():
     #     enrollment_date_entry.delete(0,END)
     #     enrollment_date_entry.insert(END,clock)
-    enrollment_fill_date_button=ttk.Button(enrollment_frame,text='⏱️',width=3,command=lambda : fill_date(enrollment_date_entry))
+    enrollment_fill_date_button=ttk.Label(enrollment_frame,image=clock_photo,width=3)
     enrollment_fill_date_button.grid(row=12,column=0,padx=3,pady=3,sticky='e')
+    enrollment_fill_date_button.bind('<Button-1>',lambda e:fill_date(enrollment_date_entry))
     
     enrollment_register_button=ttk.Button(enrollment_frame,width=10,text='መዝግብ',command=register_enrollment,style='save.TButton')
     
@@ -2507,12 +2512,12 @@ def display_main_window():
     payment_date_entry.grid(row=16,column=0,padx=3,pady=3,sticky='w')
     payment_date_entry.bind('<Up>',lambda e:payment_punishment_entry.focus(),)
     payment_date_entry.bind('<Down>',lambda e:payment_search_entry.focus())
-    fill_date(payment_date_entry)
     # def fill_date_event():
     #     payment_date_entry.delete(0,END)
     #     payment_date_entry.insert(END,clock)
-    payment_fill_date_button=ttk.Button(payment_frame,text='⏱️',width=3,command=lambda : fill_date(payment_date_entry))
+    payment_fill_date_button=ttk.Label(payment_frame,image=clock_photo,width=3)
     payment_fill_date_button.grid(row=16,column=0,padx=3,pady=3,sticky='e')
+    payment_fill_date_button.bind('<Button-1>',lambda e:fill_date(payment_date_entry))
     
     payment_register_button=ttk.Button(payment_frame,width=10,text='ከፊሉ',command=register_payment,style='save.TButton')
     
@@ -3046,9 +3051,9 @@ def display_main_window():
     drawn_date_entry.grid(row=7,column=0,padx=3,pady=3,sticky='w')
     drawn_date_entry.bind('<Up>',lambda e:drawn_equb_type_entry.focus())
     drawn_date_entry.bind('<Down>',lambda e:drawn_amount_entry.focus())
-    fill_date(drawn_date_entry)
-    drawn_fill_date_button=ttk.Button(drawn_frame,text='⏱️',width=3,command=lambda : fill_date(drawn_date_entry))
+    drawn_fill_date_button=ttk.Label(drawn_frame,image=clock_photo,width=3)
     drawn_fill_date_button.grid(row=7,column=0,padx=3,pady=3,sticky='e')
+    drawn_fill_date_button.bind('<Button-1>',lambda e: fill_date(drawn_date_entry))
 
     def calculate_drawn_total_event(event):
         calculate_drawn_total()
@@ -3834,14 +3839,14 @@ home_page.geometry(f"{screen_height}x{screen_width}+0+0")
 home_page.minsize(screen_width,screen_height)
 
 # Header Frame
-header_frame =Frame(home_page,height=screen_height*0.1,width=screen_width, background='darkblue')
+header_frame =Frame(home_page,height=screen_height*0.1,width=screen_width, background='green')
 header_frame.grid(row=0,column=0)
 
-logo_label = ttk.Label(header_frame, image=small_equb_logo,background='darkblue')
+logo_label = ttk.Label(header_frame, image=small_equb_logo,background='green')
 logo_label.place(x=0,y=0)
 # logo_label.grid(row=0,column=0,sticky='w')
 global title_label
-title_label=Label(header_frame,text=company_name,foreground='yellow',background='darkblue' ,font=('bold',42))
+title_label=Label(header_frame,text=company_name,foreground='white',background='green' ,font=('bold',42))
 title_label.place(x=0.4*screen_width,y=5)
 # title_label.place(relx=0.5,y=0,anchor='se')
 # title_label.grid(row=0,column=1,sticky='e')
