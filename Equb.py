@@ -349,6 +349,8 @@ def display_main_window():
     # main_window_submenu.add_command(label='መለለዪ ካርዲ ኣሕትም',command=print)
     main_window_submenu.add_command(label='ዕፆ',command=close_main_window)
     global search_photo
+    global back_icon
+    global next_icon
     search_photo=PhotoImage(file='./image/search.png')
     close_photo=PhotoImage(file='./image/close.png')
     back_icon=PhotoImage(file='./image/back.png')
@@ -383,7 +385,7 @@ def display_main_window():
     logged_profile_photo_label.place(x=int(screen_width-85),y=2)
     display_logged_user_profile_picture(logged_user_photo,logged_profile_photo_label)
     edit_profile_button=ttk.Button(header_frame,text='መለለዪ ኣመሓይሽ',command=edit_profile)
-    edit_profile_button.place(x=int(screen_width-92),y=50)
+    edit_profile_button.place(x=int(screen_width-102),y=50)
     body_frame=Frame(main_window,width=screen_width,height=screen_height*0.7,background='pink')
     body_frame.grid(row=1,column=0)
     # footer_frame=Frame(main_window,width=screen_width,height=50,background='white')
@@ -437,20 +439,109 @@ def display_main_window():
         payment_equb_type_entry.insert(END,equb_info)
         payment_amount_entry.focus()
         payment_equb_type_entry.focus()
-        payment_customer_name_entry.focus()
+        # payment_customer_name_entry.focus()
         find_and_fill_payment_entries_from_enrollment()
-    
+        fill_payment_customer_list_like()
+    global data_to_be_paginated
+    def fetch_unpaid_equb():
+        db=sqlite3.connect(database_name)
+        cursor=db.cursor()
+        cursor.execute("select id from equb_type where equb_type=?",[unpaid_equb_type_entry.get()])
+        equb_id_result=cursor.fetchone()
+        reached_round=return_current_round(unpaid_equb_type_entry.get())
+        
+        if equb_id_result:
+
+            cursor.execute("""
+                        select  *  from equb_enrollment 
+                        where equb_enrollment.customer_id NOT IN
+                        (select pay_list.customer_id from pay_list where  
+                         pay_list.equb_type_id=? and pay_list.paid_round=?) 
+                        and equb_enrollment.equb_type=?
+                        """,[equb_id_result[0],(reached_round[0]),equb_id_result[0]])         
+            result=cursor.fetchall()
+            
+            return result
+        cursor.close()
+        db.commit()
+        db.close()
+    def unpaid_report():
+        
+        db=sqlite3.connect(database_name)
+        cursor=db.cursor()
+        cursor.execute("select id from equb_type where equb_type=?",[unpaid_equb_type_entry.get()])
+        equb_id_result=cursor.fetchone()
+        reached_round=return_current_round(unpaid_equb_type_entry.get())
+        
+        if equb_id_result:
+
+            cursor.execute("""
+                        select  sum(amount),count(amount) from equb_enrollment 
+                        where equb_enrollment.customer_id NOT IN
+                        (select pay_list.customer_id from pay_list where  
+                         pay_list.equb_type_id=? and pay_list.paid_round=?) 
+                        and equb_enrollment.equb_type=?
+                        """,[equb_id_result[0],(reached_round[0]),equb_id_result[0]])         
+            result=cursor.fetchall()
+            
+            return result
+        cursor.close()
+        db.commit()
+        db.close()
+    def paid_report():
+        
+        db=sqlite3.connect(database_name)
+        cursor=db.cursor()
+        cursor.execute("select id from equb_type where equb_type=?",[unpaid_equb_type_entry.get()])
+        equb_id_result=cursor.fetchone()
+        reached_round=return_current_round(unpaid_equb_type_entry.get())
+        
+        if equb_id_result:
+            cursor.execute("""
+                        select  sum(amount),count(amount) from pay_list 
+                        where   
+                         pay_list.equb_type_id=? and pay_list.paid_round=?
+                        """,[equb_id_result[0],(reached_round[0])])         
+            result=cursor.fetchall()
+            return result
+        cursor.close()
+        db.commit()
+        db.close()
+    def profit_report():
+        db=sqlite3.connect(database_name)
+        cursor=db.cursor()
+        cursor.execute("select id from equb_type where equb_type=?",[unpaid_equb_type_entry.get()])
+        equb_id_result=cursor.fetchone()
+        if equb_id_result:
+            cursor.execute("""select  sum(drawn_tax) from drawn_list where    equb_type_id=? """,[equb_id_result[0]])         
+            result=cursor.fetchall()
+            return result
+        cursor.close()
+        db.commit()
+        db.close()
+    def punishment_report():
+        db=sqlite3.connect(database_name)
+        cursor=db.cursor()
+        cursor.execute("select id from equb_type where equb_type=?",[unpaid_equb_type_entry.get()])
+        equb_id_result=cursor.fetchone()
+        if equb_id_result:
+            cursor.execute("""select  sum(punished_amount) from pay_list where    equb_type_id=? """,[equb_id_result[0]])         
+            result=cursor.fetchall()
+            return result
+        cursor.close()
+        db.commit()
+        db.close()
     def handle_page(status):
         global current_page
-        unpaid_customers=fetch_data('*','equb_enrollment')
-        total_elements=len(unpaid_customers)
+        
+        total_elements=len(data_to_be_paginated)
         total_pages = total_elements // page_size + (1 if total_elements % page_size else 0)
         if status=='prev':
             
             current_page-=1
             if current_page<1:
                 current_page=total_pages
-        if status=='next':
+        elif status=='next':
             
             current_page+=1   
             if (current_page>total_pages):
@@ -459,7 +550,8 @@ def display_main_window():
         
         fill_unpaid_lister(current_page)
     def fill_unpaid_lister(current_page):
-        unpaid_customers=fetch_data('*','equb_enrollment')
+        unpaid_customers=data_to_be_paginated
+        
         # total_elements=len(unpaid_customers)
         # total_pages = total_elements // page_size + (1 if total_elements % page_size else 0)
         
@@ -469,55 +561,138 @@ def display_main_window():
         
         for widget in unpaid_lister_main_frame.winfo_children():
             widget.destroy()
-        for i, customer_name in enumerate(paged_customers, start=starting_element):
+
+        if unpaid_customers:
+            for i, customer_name in enumerate(paged_customers, start=starting_element):
+                
+                unpaid_lister_child_frame=ttk.Frame(unpaid_lister_main_frame,width=int(screen_width*0.25)-50,height=80)
+                unpaid_lister_child_frame.grid(row=i,column=1,padx=5,pady=3)
+                customer_info=fetch_data_by_id("*","customer",customer_name[1])
+                customer_equb_info=fetch_data_by_id("*","equb_type",customer_name[2])
+                unpaid_lister_child_frame.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
+                
+                unpaid_photo_label=ttk.Label(unpaid_lister_child_frame)
+                unpaid_photo_label.grid(row=1,column=1,rowspan=4,padx=5,pady=2)
+                display_profile_picture(customer_info[5],unpaid_photo_label,size=(60,70))
+                unpaid_photo_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
+                
+                unpaid_name_label=ttk.Label(unpaid_lister_child_frame,text=f'{customer_info[0]} / {customer_info[1]} ',width=30)
+                unpaid_name_label.grid(row=1,column=2,padx=5,pady=2)
+                unpaid_name_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
+                
+                unpaid_phone_number_label=ttk.Label(unpaid_lister_child_frame,text=f'{customer_info[2]} ',width=30)
+                unpaid_phone_number_label.grid(row=2,column=2,padx=5,pady=2)
+                unpaid_phone_number_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
+                
+                unpaid_equb_type_label=ttk.Label(unpaid_lister_child_frame,text=f'{customer_equb_info[1]} ',width=30)
+                unpaid_equb_type_label.grid(row=3,column=2,padx=5,pady=2)
+                unpaid_equb_type_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
+                
+                unpaid_amount_label=ttk.Label(unpaid_lister_child_frame,text=f'{customer_name[3]} ',width=30)
+                unpaid_amount_label.grid(row=4,column=2,padx=5,pady=2)
+                unpaid_amount_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
+        else:
+            unpaid_info_label=ttk.Label(unpaid_lister_main_frame,text="ኩሎም ኣባላት ከፊሎም እዮም",font=('Tera',14,'bold'),foreground='green')
+            unpaid_info_label.grid(row=1,column=1,rowspan=4,padx=5,pady=2)
             
-            unpaid_lister_child_frame=ttk.Frame(unpaid_lister_main_frame,width=int(screen_width*0.25)-50,height=90)
-            unpaid_lister_child_frame.grid(row=i,column=1,padx=5,pady=3)
-            customer_info=fetch_data_by_id("*","customer",customer_name[1])
-            customer_equb_info=fetch_data_by_id("*","equb_type",customer_name[2])
-            unpaid_lister_child_frame.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
-            
-            unpaid_photo_label=ttk.Label(unpaid_lister_child_frame)
-            unpaid_photo_label.grid(row=1,column=1,rowspan=4,padx=5,pady=3)
-            display_profile_picture(customer_info[5],unpaid_photo_label,size=(50,70))
-            unpaid_photo_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
-            
-            unpaid_name_label=ttk.Label(unpaid_lister_child_frame,text=f'{customer_info[0]} / {customer_info[1]} ',width=30)
-            unpaid_name_label.grid(row=1,column=2,padx=5,pady=3)
-            unpaid_name_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
-            
-            unpaid_phone_number_label=ttk.Label(unpaid_lister_child_frame,text=f'{customer_info[2]} ',width=30)
-            unpaid_phone_number_label.grid(row=2,column=2,padx=5,pady=3)
-            unpaid_phone_number_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
-            
-            unpaid_equb_type_label=ttk.Label(unpaid_lister_child_frame,text=f'{customer_equb_info[1]} ',width=30)
-            unpaid_equb_type_label.grid(row=3,column=2,padx=5,pady=3)
-            unpaid_equb_type_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
-            
-            unpaid_amount_label=ttk.Label(unpaid_lister_child_frame,text=f'{customer_name[3]} ',width=30)
-            unpaid_amount_label.grid(row=4,column=2,padx=5,pady=3)
-            unpaid_amount_label.bind('<Button-1>',partial(display_detailed_information , equb_info=customer_equb_info[1],customer_id=f'{customer_info[0]} / {customer_info[1]} '))
-            
+    def filter_by_equb_type_event(event):
+        filter_by_equb_type()
+    def filter_by_equb_type():
+        global data_to_be_paginated
+        global fetched_unpaid_amount
+        data_to_be_paginated=fetch_unpaid_equb()
+        fetched_unpaid_amount= 0 if unpaid_report()[0][0]==None else f'{unpaid_report()[0][1]} - {unpaid_report()[0][0]}'
+        fetched_paid_amount=0 if paid_report()[0][0]==None else f'{paid_report()[0][1]} - {paid_report()[0][0]}'
+        fetched_total_amount=0 if profit_report()[0][0]==None else profit_report()[0][0]
+        fetched_punishment_amount=0 if punishment_report()[0][0]==None else punishment_report()[0][0]
+        fill_unpaid_lister(1)
+        manage_profit(fetched_unpaid_amount,fetched_paid_amount,fetched_total_amount,fetched_punishment_amount)
+        
+    def fill_unpaid_types_list():
+        result=fetch_data('*','equb_type')
+        equb_type_list.clear()
+        if result:
+            for i in result:
+                equb_type_list.append(i[1])
+            unpaid_equb_type_entry.config(values=equb_type_list)
+            unpaid_equb_type_entry.set(equb_type_list[0])
     enrollment_frame=ttk.Frame(registration_container_frame,width=screen_width*0.25,height=515)
     # enrollment_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
+    profit_frame=Frame(registration_container_frame,width=screen_width*0.25,height=460)
+    # profit_frame.pack(side='left')
     
+
     payment_frame=ttk.Frame(registration_container_frame,width=screen_width*0.25,height=515)
     # payment_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
     
     profile_picture_frame=ttk.Frame(registration_container_frame,width=screen_width*0.25,height=515)
     # profile_picture_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
-    unpaid_lister_main_frame=Frame(registration_container_frame,width=screen_width*0.25,height=460,background='black')
+    unpaid_parent_filter_frame=ttk.Frame(registration_container_frame,width=screen_width*0.25,height=460)
+    unpaid_lister_main_frame=ttk.Frame(unpaid_parent_filter_frame,width=280,height=400)
+    unpaid_filter_frame=ttk.Frame(unpaid_parent_filter_frame,width=screen_width*0.25,height=460)
+    # unpaid_filter_frame.pack(side='top')
+    
+    unpaid_equb_type_entry=ttk.Combobox(unpaid_filter_frame,values=equb_type_list,width=32)
+    unpaid_equb_type_entry.grid(row=1,column=1,sticky='w',padx=5,pady=5)
+    # unpaid_equb_type_entry.set(equb_type_list[0])
+    fill_unpaid_types_list()
+    unpaid_equb_type_entry.bind('<KeyRelease>',filter_by_equb_type_event)
+    unpaid_equb_type_entry.bind('<FocusIn>',filter_by_equb_type_event)
+    # unpaid_search_entry=ttk.Entry(unpaid_filter_frame,width=28)
+    # unpaid_search_entry.grid(row=2,column=1,sticky='w',padx=5,pady=2)
+    # unpaid_search_entry.bind('<FocusIn>',filter_by_name)
+    # unpaid_search_entry.bind('<KeyRelease>', filter_by_name)
+    # unpaid_search_label=ttk.Label(unpaid_filter_frame,image=search_photo)
+    # unpaid_search_label.grid(row=2,column=1,sticky='e',padx=5,pady=2)
     # unpaid_lister_main_frame.pack(side=LEFT,anchor='n',padx=25,pady=10)
     # unpaid_lister_veritca_scroll_bar=ttk.Scrollbar(registration_container_frame,orient=VERTICAL)
     # unpaid_lister_veritca_scroll_bar.pack(side='right',fill='y')                                          #    ,command=unpaid_lister_main_frame.yview)
     # unpaid_lister_veritca_scroll_bar.place(relheight=1,relx=0.97,rely=0)
-    unpaid_prev_buttton=ttk.Button(registration_container_frame,text='ዝሓለፈ ገፅ',command=lambda : handle_page('prev'))
+    # unpaid_prev_buttton=ttk.Button(registration_container_frame,image=back_icon,text='ዝሓለፈ ገፅ',command=lambda : handle_page('prev'))
     # unpaid_prev_buttton.place(relx=0.019,rely=0.935)
-    unpaid_next_buttton=ttk.Button(registration_container_frame,text='ቀፃሊ ገፅ',command=lambda : handle_page('next'))
+    unpaid_prev_buttton=ttk.Label(registration_container_frame,image=back_icon,style='Label.TLabel')
+    unpaid_prev_buttton.bind('<Button-1>',lambda e :handle_page('prev'))
+    # unpaid_next_buttton=ttk.Button(registration_container_frame,image=next_icon,text='ቀፃሊ ገፅ',command=lambda : handle_page('next'))
     # unpaid_next_buttton.place(relx=0.158,rely=0.935)
+    unpaid_next_buttton=ttk.Button(registration_container_frame,image=next_icon,style='Label.TLabel')
+    unpaid_next_buttton.bind('<Button-1>',lambda e :handle_page('next'))
+    data_to_be_paginated=fetch_unpaid_equb()
     fill_unpaid_lister(1)
     # unpaid_lister_main_frame.configure(yscrollcommand=unpaid_lister_veritca_scroll_bar.set)
+    fetched_unpaid_amount= 0 if unpaid_report()[0][0]==None else f'{unpaid_report()[0][1]} - {unpaid_report()[0][0]}'
+    fetched_paid_amount=0 if paid_report()[0][0]==None else f'{paid_report()[0][1]} - {paid_report()[0][0]}'
+    fetched_total_amount=0 if profit_report()[0][0]==None else profit_report()[0][0]
+    fetched_punishment_amount=0 if punishment_report()[0][0]==None else punishment_report()[0][0]
+    def manage_profit(fetched_unpaid_amount,fetched_paid_amount,fetched_total_amount,fetched_punishment_amount):
+        total_unpaid_value_label.config(text='')
+        total_unpaid_value_label.config(text=f"{fetched_unpaid_amount}")
+        total_paid_value_label.config(text='')
+        total_paid_value_label.config(text=f"{fetched_paid_amount}")
+        total_total_value_label.config(text='')
+        total_total_value_label.config(text=f"{fetched_total_amount}")
+        total_punishment_value_label.config(text="")
+        total_punishment_value_label.config(text=f"{fetched_punishment_amount}")
+    total_unpaid_label=ttk.Label(profit_frame,text="ዘይተኸፈለ ገንዘብ",font=('Arial',14,'bold'),width=15,compound='center')
+    total_unpaid_label.grid(row=1,column=1,padx=5,pady=5,columnspan=2)
+    total_unpaid_value_label=ttk.Label(profit_frame,text=f"{fetched_unpaid_amount}",font=('Arial',14,'bold'),foreground='red',width=15,compound='center')
+    total_unpaid_value_label.grid(row=2,column=1,padx=5,pady=0,columnspan=2)
+    
+    total_paid_label=ttk.Label(profit_frame,text="ዝተኸፈለ ገንዘብ",font=('Arial',14,'bold'),width=15,compound='center')
+    total_paid_label.grid(row=3,column=1,padx=5,pady=5,columnspan=2)
+    total_paid_value_label=ttk.Label(profit_frame,text=f"{fetched_paid_amount}",font=('Arial',14,'bold'),foreground='blue',width=15,compound='center')
+    total_paid_value_label.grid(row=4,column=1,padx=5,pady=0,columnspan=2)
+    
 
+    total_total_label=ttk.Label(profit_frame,text="ከስቢ",font=('Arial',14,'bold'),width=15,compound='center')
+    total_total_label.grid(row=5,column=1,padx=5,pady=5)
+    total_total_value_label=ttk.Label(profit_frame,text=f"{fetched_total_amount}",font=('Arial',14,'bold'),foreground='green',width=15,compound='center')
+    total_total_value_label.grid(row=6,column=1,padx=5,pady=0)
+    
+    
+    total_punishment_label=ttk.Label(profit_frame,text="ጠቕላላ ቅፅዓት",font=('Arial',14,'bold'),width=15,compound='center')
+    total_punishment_label.grid(row=7,column=1,padx=5,pady=5)
+    total_punishment_value_label=ttk.Label(profit_frame,text=f"{fetched_punishment_amount}",font=('Arial',14,'bold'),foreground='green',width=15,compound='center')
+    total_punishment_value_label.grid(row=8,column=1,padx=0,pady=0)
     
     # list_of_customers.configure(yscrollcommand=vsbs.set)
     customer_list_frame=ttk.Frame(main_notebook,width=screen_width,height=515)
@@ -599,6 +774,9 @@ def display_main_window():
         unpaid_lister_main_frame.pack_forget()
         unpaid_next_buttton.place_forget()
         unpaid_prev_buttton.place_forget()
+        unpaid_filter_frame.pack_forget()
+        profit_frame.pack_forget()
+        unpaid_parent_filter_frame.pack_forget()
     def display_profile_picture_frame():
         profile_picture_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
         
@@ -606,11 +784,14 @@ def display_main_window():
     
     def display_payment_frame():
         clear_customer_and_enrollment_frame()
-        unpaid_lister_main_frame.pack(side=LEFT,anchor='n',padx=25,pady=10,expand=False)
+        unpaid_parent_filter_frame.pack(side=LEFT,anchor='n',padx=5,pady=5)
+        unpaid_filter_frame.pack(side=TOP,anchor='nw',padx=5,pady=2)
+        unpaid_lister_main_frame.pack(side=BOTTOM,anchor='nw',padx=5,pady=2)
+        profit_frame.pack(side=LEFT,anchor='n',padx=20,pady=30)
         payment_frame.pack(side=LEFT,anchor='n',padx=25,fill=Y,pady=10)
         display_profile_picture_frame()
-        unpaid_prev_buttton.place(relx=0.019,rely=0.935)
-        unpaid_next_buttton.place(relx=0.158,rely=0.935)
+        unpaid_prev_buttton.place(relx=0.012,rely=0.94)
+        unpaid_next_buttton.place(relx=0.15,rely=0.94)
         # payment_customer_name_entry.focus()
     def display_register_customer_frame():
         clear_customer_and_enrollment_frame()
@@ -1776,7 +1957,7 @@ def display_main_window():
                             have_customer_equb_label.config(text='')
                             have_customer_equb_label.config(text='ዕቁብ በፂሕዎ ዶ ? ')
                             taken_amount_label.config(text='')
-                            taken_amount_label.config(text=f'❌ ኣይበፅሖን',foreground='red')
+                            taken_amount_label.config(text=f'❌ ኣይበፅሖን/ሓን',foreground='red')
                         
                         if (int(round_result)>int(reached_round)):
                             has_paid_last_round_label.config(text='')
@@ -1803,7 +1984,7 @@ def display_main_window():
                             current_round_unpaid_quetion_label.config(text='')
                             current_round_unpaid_quetion_label.config(text=f'{reached_round}ይ ዙር ከፊሉ ዶ?')
                             current_round_unpaid_label.config(text='')
-                            current_round_unpaid_label.config(text='❌ ኣይከፈለን',foreground='red')
+                            current_round_unpaid_label.config(text='❌ ኣይከፈለን/ትን',foreground='red')
                         # elif (int(reached_round)>int(round_result)):
                             
                         #     has_paid_last_round_label.config(text='')
@@ -1815,12 +1996,12 @@ def display_main_window():
                         #     current_round_unpaid_quetion_label.config(text='')
                         #     current_round_unpaid_quetion_label.config(text=f'{reached_round}ይ ዙር ከፊሉ ዶ?')
                         #     current_round_unpaid_label.config(text='')
-                        #     current_round_unpaid_label.config(text='❌ ኣይከፈለን',foreground='red')
+                        #     current_round_unpaid_label.config(text='❌ ኣይከፈለን/ትን',foreground='red')
                         elif (int(reached_round)>int(round_result)):
                             has_paid_last_round_label.config(text='')
                             has_paid_last_round_label.config(text='ዝሓለፈ ከፊሉ ዶ ? ')
                             past_unpaid_status_label.config(text='')
-                            past_unpaid_status_label.config(text='❌ ኣይከፈለን',foreground='red')
+                            past_unpaid_status_label.config(text='❌ ኣይከፈለን/ትን',foreground='red')
                             past_unpaid_round_label.config(text='')
                             past_unpaid_round_label.config(text=f'ዘይተኸፈለ ዙር : {round_result}-{reached_round} ',foreground='red')
                             past_unpaid_amount_label.config(text='')
@@ -1828,7 +2009,7 @@ def display_main_window():
                             current_round_unpaid_quetion_label.config(text='')
                             current_round_unpaid_quetion_label.config(text=f'{reached_round}ይ ዙር ከፊሉ ዶ?')
                             current_round_unpaid_label.config(text='')
-                            current_round_unpaid_label.config(text='❌ ኣይከፈለን',foreground='red')
+                            current_round_unpaid_label.config(text='❌ ኣይከፈለን/ትን',foreground='red')
                     else:
                         clear_customer_info_lables()
                         # has_paid_last_round_label.config(text='')
@@ -1911,6 +2092,7 @@ def display_main_window():
             fill_date(payment_date_entry)
             display_profile_picture(default_profile_photo,customer_photo_info_label)
             clear_customer_info_lables()
+            filter_by_equb_type()
         except:
             pass
     def update_payment():
@@ -1948,6 +2130,7 @@ def display_main_window():
             fill_date(payment_date_entry)
             display_profile_picture(default_profile_photo,customer_photo_info_label)
             clear_customer_info_lables()
+            filter_by_equb_type()
             payment_search_entry.delete(0,END)
         except:
             pass
@@ -1979,6 +2162,7 @@ def display_main_window():
             display_profile_picture(default_profile_photo,customer_photo_info_label)
             clear_customer_info_lables()
             payment_search_entry.delete(0,END)
+            filter_by_equb_type()
         except:
             pass
     def find_and_fill_payment_entries(event):
@@ -2387,6 +2571,8 @@ def display_main_window():
 
     def draw_winner_event(event):
         customer_photo=(fetch_data_by_id('*','customer',drawn_customer_name_entry.get().split('/')[0]))
+        fill_drawn_total_amount()
+        fill_tax()
         if customer_photo:
             new_customer_photo=customer_photo[5]
             display_profile_picture(default_profile_photo,drawn_warrant_profile_photo_label)
@@ -2583,7 +2769,8 @@ def display_main_window():
             db.commit()
             db.close()
             # result=fetch_data('*','equb_enrollment')
-            
+            fill_drawn_total_amount()
+            fill_tax()
             drawn_customer_list.clear()
             if customer_result:
                 for i in customer_result:
@@ -2649,6 +2836,8 @@ def display_main_window():
             if result:
                 drawn_tax_entry.delete(0,END)
                 drawn_tax_entry.insert(END,result)
+            else:
+                drawn_tax_entry.delete(0,END)
         except:
             pass
     def fill_drawn_total_amount():
@@ -2665,9 +2854,12 @@ def display_main_window():
         cursor.close()
         db.commit()
         db.close()
-        if result:
+        
+        if result[0]!=None:
             drawn_amount_entry.delete(0,END)
             drawn_amount_entry.insert(END,result)
+        else:
+            drawn_amount_entry.delete(0,END)
         fill_current_round()
         fill_drawn_date()
         # except:
@@ -2808,7 +3000,7 @@ def display_main_window():
             drawn_equb_type_entry.config(values=drawn_equb_type)
             drawn_equb_type_entry.delete(0,END)
             drawn_equb_type_entry.insert(END,drawn_equb_type[0])
-    drawn_title=ttk.Label(drawn_frame,text='ዕጫ መውፅኢ ',font=('arial',15,'bold') ,foreground='purple')
+    drawn_title=ttk.Label(drawn_frame,text='ዕጫ መውፅኢ ',font=('arial',15,'bold') ,foreground='blue')
     drawn_title.grid(row=0,column=0,padx=20,pady=5,sticky='w')
 
     drawn_customer_name_label=ttk.Label(drawn_frame,text='ዕጫ ዝበፅሖ ዓሚል')
@@ -2958,6 +3150,7 @@ def display_main_window():
             display_register_customer_frame()
             search_customer.delete(0,END)
             search_customer.insert(END,selected_id )
+            search_customer.focus()
             search_customer_and_fill()
     def customer_treeview_event(event):
         list_of_customers.bind('<Return>',customer_enter_event)
@@ -2974,7 +3167,7 @@ def display_main_window():
                         where customer.customer_name like '%"""+table_search_entry.get()+"""%' and pay_list.equb_type_id=(select id from equb_type
                         where equb_type=?) """,[table_equb_type_entry.get()])
             result=cursor.fetchall()
-            print('resutl',result)
+           
             cursor.execute("""select 
                         sum(amount) , sum(unpaid_amount),sum(punished_amount), customer.customer_name 
                             from pay_list JOIN customer ON pay_list.customer_id=customer.id 
@@ -3036,6 +3229,7 @@ def display_main_window():
             display_payment_frame()
             payment_search_entry.delete(0,END)
             payment_search_entry.insert(END,selected_id )
+            payment_search_entry.focus()
             find_and_fill_payment_entries_after()
     def pay_treeview_event(event):
         list_of_customers.bind('<Return>',pay_enter_event)
@@ -3272,6 +3466,7 @@ def display_main_window():
             display_enrollment_frame()
             enrollment_search_entry.delete(0,END)
             enrollment_search_entry.insert(END,selected_id )
+            enrollment_search_entry.focus()
             find_and_fill_enrollment_entries_after()
     def enrollment_treeview_event(event):
         list_of_customers.bind('<Return>',enrollment_enter_event)
@@ -3357,6 +3552,7 @@ def display_main_window():
             main_notebook.select(1)
             drawn_search_entry.delete(0,END)
             drawn_search_entry.insert(END,selected_id )
+            drawn_search_entry.focus()
             find_and_fill_drawn_entries_after()
             
     def drawn_treeview_event(event):
@@ -3610,6 +3806,7 @@ styles.configure('TFrame',background='white')
 styles.configure('TLabel',background='white')
 styles.configure('pink.TFrame',background='pink')
 styles.configure('TEntry',background='blue')
+styles.map('Label.TLabel',background=[('hover','blue')])
 # styles.configure('TButton',background='blue')
 # styles.map('TButton',background=[('hover','black'),('background','black')])
 
@@ -3746,61 +3943,61 @@ def check_expire_date():
 ##    db.close()
 ##    password_entry.delete(0,END)
 def check_user_name_and_password():
-    try:
-        db = sqlite3.connect(database_name)
-        cursor = db.cursor()
-        
-        # Get the username entered by the user
-        user_name = user_name_entry.get()
-        password = password_entry.get()
+    # try:
+    db = sqlite3.connect(database_name)
+    cursor = db.cursor()
     
-        # Fetch the user record from the database (including hashed password)
-        cursor.execute('SELECT * FROM user WHERE user_name=?', [user_name])
-        result = cursor.fetchone()
-    
-        # Check for password expiration
-        is_expired = check_expire_date()
-    
-        if result:
-            # The password is stored in a hashed form, so we check using bcrypt
-            stored_hashed_password = result[3]  # Assuming the hashed password is in the third column (index 3)
-            global logged_user_role
-            global logged_user_id
-            global logged_user_name
-            global logged_user_full_name
-            global logged_user_photo
-            logged_user_id = result[0]
-            logged_user_full_name=result[1]
-            logged_user_name=result[2]
-            logged_user_role = result[4]
-            if result[5]:
-                logged_user_photo=result[5]
-            else:
-                logged_user_photo=default_profile_photo
-            # Check if the password entered by the user matches the stored hashed password
-            if bcrypt.checkpw(password_entry.get().encode('utf-8'), stored_hashed_password):
-                if is_expired and str(result[4]) != str('super_admin'):
-                    expiry_date_reached()
-                else:
-                    
-                    display_main_window()
-            else:
-                # Invalid password
-                password_entry.delete(0, END)
-                password_error.config(text='መሕለፊ ቃል ኣስተካክሉ ', foreground='red')
-                password_error.after(2000, clear_password_error)
+    # Get the username entered by the user
+    user_name = user_name_entry.get()
+    password = password_entry.get()
+
+    # Fetch the user record from the database (including hashed password)
+    cursor.execute('SELECT * FROM user WHERE user_name=?', [user_name])
+    result = cursor.fetchone()
+
+    # Check for password expiration
+    is_expired = check_expire_date()
+
+    if result:
+        # The password is stored in a hashed form, so we check using bcrypt
+        stored_hashed_password = result[3]  # Assuming the hashed password is in the third column (index 3)
+        global logged_user_role
+        global logged_user_id
+        global logged_user_name
+        global logged_user_full_name
+        global logged_user_photo
+        logged_user_id = result[0]
+        logged_user_full_name=result[1]
+        logged_user_name=result[2]
+        logged_user_role = result[4]
+        if result[5]:
+            logged_user_photo=result[5]
         else:
-            # Username not found
+            logged_user_photo=default_profile_photo
+        # Check if the password entered by the user matches the stored hashed password
+        if bcrypt.checkpw(password_entry.get().encode('utf-8'), stored_hashed_password):
+            if is_expired and str(result[4]) != str('super_admin'):
+                expiry_date_reached()
+            else:
+                
+                display_main_window()
+        else:
+            # Invalid password
             password_entry.delete(0, END)
             password_error.config(text='መሕለፊ ቃል ኣስተካክሉ ', foreground='red')
             password_error.after(2000, clear_password_error)
-    
-        cursor.close()
-        db.commit()
-        db.close()
+    else:
+        # Username not found
         password_entry.delete(0, END)
-    except:
-        pass
+        password_error.config(text='መሕለፊ ቃል ኣስተካክሉ ', foreground='red')
+        password_error.after(2000, clear_password_error)
+
+    cursor.close()
+    db.commit()
+    db.close()
+    password_entry.delete(0, END)
+    # except:
+    #     pass
 #*************************************************************************
 
 def clear_login_entry():
