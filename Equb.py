@@ -91,10 +91,11 @@ def fill_punishment_list():
     all_punishment_list=fetch_data('oid,*','punishment')
     punishment_list.clear()
     my_punishment_list.clear()
-    for i in all_punishment_list:
-        if i not in punishment_list:
-            punishment_list.append(i[1])
-            my_punishment_list.append(f'{i[0]} / {i[1]}')
+    if all_punishment_list: 
+        for i in all_punishment_list:
+            if i not in punishment_list:
+                punishment_list.append(i[1])
+                my_punishment_list.append(f'{i[0]} / {i[1]}')
 fill_punishment_list()
 def return_current_round(equb_type):
     
@@ -702,10 +703,10 @@ def display_main_window():
     customer_list_frame.pack()
     equb_management_frame=ttk.Frame(main_notebook,width=screen_width,height=515)
     equb_management_frame.pack()
-    main_notebook.add(registration_container_frame,text='    ዓሚል መመዝገቢ ፣ መኽፈሊ ቕጥዒ  ')
-    main_notebook.add(drawn_container_frame,text='     ዕጫ መውደቕን መመዝገብን    ')
-    main_notebook.add(customer_list_frame,text='       ዝርዝር ሓበሬታ      ')
-    main_notebook.add(equb_management_frame,text='    መመሓየሺ   ')
+    main_notebook.add(registration_container_frame,text=' ዓሚል መመዝገቢ ፣ መኽፈሊ ቕጥዒ ')
+    main_notebook.add(drawn_container_frame,text=' ዕጫ መውደቕን መመዝገብን ')
+    main_notebook.add(customer_list_frame,text=' ዝርዝር ሓበሬታ ')
+    main_notebook.add(equb_management_frame,text=' መመሓየሺ ')
 #customer information lables *************************************************
     global clear_customer_info_lables
     def clear_customer_info_lables():
@@ -811,16 +812,26 @@ def display_main_window():
 #************************************setting form **************************************************
     global profile_frame
     profile_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=515)
-    if logged_user_role=='super_admin':
-        profile_frame.grid(row=0,column=0,padx=20,sticky='n',rowspan=2)
-    else:
-        profile_frame.grid_forget()
-    user_profile_photo_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=515)
-    user_profile_photo_frame.grid(row=0,column=3,padx=20,sticky='n',rowspan=2)
+    
+    user_profile_photo_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=200)
+    
     equb_settings_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=515)
     equb_settings_frame.grid(row=0,column=1,padx=20,sticky='n',rowspan=2)
     
-    expire_date_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=250)
+    expire_date_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=150)
+    def clear_punishment_info():
+        punishment_info_label.config(text='')
+    def update_punishment_entries():
+        try:
+            fill_punishment_list()
+            punishment_entry.config(values=my_punishment_list)
+            punishment_entry.delete(0,END)
+            punishment_entry.set(my_punishment_list[0])
+            payment_punishment_entry_list.config(values=punishment_list)
+            payment_punishment_entry_list.delete(0,END)
+            payment_punishment_entry_list.set(punishment_list[0])
+        except:
+            pass
     def configure_punishment(order):
         punishment_type_entry.get()
         punishment_amount_entry.get()
@@ -830,19 +841,27 @@ def display_main_window():
         cursor=db.cursor()
         if order=='add':
             
-            cursor.execute('insert into punishment (punishment_name,punishment_amount) values ?,?',([punishment_type_entry.get(),punishment_amount_entry.get()]))
-            fill_punishment_list()
+            cursor.execute('insert into punishment (punishment_name,punishment_amount) values (?,?)',([punishment_type_entry.get(),punishment_amount_entry.get()]))
+            
             punishment_info_label.config(text='ብትኽክል ተመዝጊቡ')
+            punishment_info_label.after('3000',clear_punishment_info)
         elif order=='update':
             
             cursor.execute('update punishment set punishment_name=?,punishment_amount=? where oid=?',([punishment_type_entry.get(),punishment_amount_entry.get(),punishment_id]))
-            fill_punishment_list()
-            punishment_info_label.config(text='ብትኽክል ተመዝጊቡ')
+            
+            punishment_info_label.config(text='ብትኽክል ተመሓይሹ')
+            punishment_info_label.after('3000',clear_punishment_info)
         elif order=='delete':
             
             cursor.execute('delete from punishment where oid=?',([punishment_id]))
-            fill_punishment_list()
-            punishment_info_label.config(text='ብትኽክል ተመዝጊቡ')
+            
+            punishment_info_label.config(text='ካብ መዝገብ ጠፊኡ')
+            punishment_info_label.after('3000',clear_punishment_info)
+        update_punishment_entries()
+        punishment_entry.delete(0,END)
+        punishment_type_entry.delete(0,END)
+        punishment_amount_entry.delete(0,END)
+        # payment_punishment_entry_list.set(punishment_list[-1])
         cursor.close()
         db.commit()
         db.close()
@@ -857,18 +876,21 @@ def display_main_window():
             punishment_update_button.grid(row=6,column=1,padx=2,pady=5,sticky='w')
         
         else:
-            punishment_add_button.config(width=32)
+            punishment_add_button.config(width=33)
             punishment_add_button.grid(row=6,column=1,padx=2,pady=5,sticky='w')
             punishment_delete_button.grid_forget()
             punishment_update_button.grid_forget()
     def fill_punishment_entries():
         check_punishment_button()
         punishment_id=punishment_entry.get().split('/')[0]
+        update_punishment_entries()
         data=fetch_data_by_id('oid,*','punishment',punishment_id,'oid')
         punishment_type_entry.delete(0,END)
-        punishment_type_entry.insert(END,data[1])
         punishment_amount_entry.delete(0,END)
-        punishment_amount_entry.insert(END,data[2])
+        if data!=None:
+            
+            punishment_type_entry.insert(END,data[1])
+            punishment_amount_entry.insert(END,data[2])
         # punishment_type_entry.delete(0,END)
         # punishment_amount_entry.delete(0,END)
         # punishment_type=punishment_entry.get().split('/')[1]
@@ -876,13 +898,16 @@ def display_main_window():
         # punishment_type_entry.insert(END,punishment_type)
         
     punishment_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=250)
-    punishment_frame.grid(row=1,column=2,padx=20,pady=30,sticky='n')
+    
+    
+    
     punishment_title_label=ttk.Label(punishment_frame,width=22,background='green',text='ናይ ቅፅዓት ሕጊ መመዝገቢ',foreground='white',font=('Arial',12,'bold'))
     punishment_title_label.grid(row=0,column=1,padx=5,pady=5,sticky='w')
     
     punishment_entry=ttk.Combobox(punishment_frame,width=23,values=my_punishment_list)
     punishment_entry.grid(row=1,column=1,padx=5,pady=5,sticky='w')
-    punishment_entry.set(my_punishment_list[0])
+    if my_punishment_list:
+        punishment_entry.set(my_punishment_list[0])
     punishment_entry.bind('<FocusIn>',lambda e:fill_punishment_entries())
     punishment_entry.bind('<KeyRelease>',lambda e:fill_punishment_entries())
     punishment_search_label=ttk.Label(punishment_frame,image=search_photo)
@@ -896,20 +921,26 @@ def display_main_window():
     punishment_amount_entry=ttk.Entry(punishment_frame,width=33)
     punishment_amount_entry.grid(row=5,column=1,padx=5,pady=5,sticky='w')
 
-    punishment_add_button=ttk.Button(punishment_frame,text='መዝግብ',width=9,command=lambda :configure_punishment('add'))
+    punishment_add_button=ttk.Button(punishment_frame,text='መዝግብ',command=lambda :configure_punishment('add'))
     
-    punishment_update_button=ttk.Button(punishment_frame,text='ኣመሓይሽ',width=9,command=lambda :configure_punishment('update'))
+    punishment_update_button=ttk.Button(punishment_frame,text='ኣመሓይሽ',command=lambda :configure_punishment('update'))
     
-    punishment_delete_button=ttk.Button(punishment_frame,text='ኣጥፍእ',width=9,command=lambda :configure_punishment('delete'))
+    punishment_delete_button=ttk.Button(punishment_frame,text='ኣጥፍእ',command=lambda :configure_punishment('delete'))
     punishment_info_label=ttk.Label(punishment_frame,text='')
     punishment_info_label.grid(row=7,column=1,padx=2,pady=5,sticky='w')
     
     check_punishment_button()
     if logged_user_role=='super_admin':
-        expire_date_frame.grid(row=0,column=2,padx=20,pady=30,sticky='n')
+        expire_date_frame.grid(row=0,column=2,padx=20,pady=5,sticky='n',rowspan=2)
+        profile_frame.grid(row=0,column=0,padx=20,sticky='n',rowspan=2)
+        punishment_frame.grid(row=1,column=2,padx=20,pady=5,sticky='s')
+        user_profile_photo_frame.grid(row=0,column=3,padx=20,sticky='n',rowspan=2)
     else:
         expire_date_frame.grid_forget()
-    user_registration_label=ttk.Label(profile_frame,text='ሰራሕተኛ መመዝገቢ',font=('arial',14,'bold') ,foreground='blue')
+        profile_frame.grid_forget()
+        punishment_frame.grid(row=0,column=2,padx=20,pady=10,sticky='n')
+        user_profile_photo_frame.grid(row=1,column=0,padx=20,sticky='n')
+    user_registration_label=ttk.Label(profile_frame,text='ሰራሕተኛ መመዝገቢ',font=('arial',14,'bold') ,foreground='white',background='green',width=16)
     user_registration_label.grid(row=0,column=0,pady=10,padx=5)
     # *********************************************************************************
     def clear_user_registration_notification_label():
@@ -1163,7 +1194,8 @@ def display_main_window():
     def clear_equb_registration_entries():
         equb_id_entry.delete(0,END)
         equb_name_entry.delete(0,END)
-        equb_types_entry.set(equb_type_list[0])
+        if equb_type_list:
+            equb_types_entry.set(equb_type_list[0])
         equb_amount_of_money_entry.delete(0,END)
         # total_members_entry.delete(0,END)
         time_entry.delete(0,END)
@@ -1224,8 +1256,10 @@ def display_main_window():
         refresh_table_list()
         fill_table_equb_type()
         fill_available_equb()
+        fill_unpaid_types_list()
         search_equb_entry.delete(0,END)
-        search_equb_entry.set(available_equb[-1])
+        if available_equb:
+            search_equb_entry.set(available_equb[0])
     def update_equb():
         equb_name_and_type=f'{equb_name_entry.get()}-{equb_types_entry.get()}'
         db = sqlite3.connect(database_name)
@@ -1252,8 +1286,10 @@ def display_main_window():
         refresh_table_list()
         fill_table_equb_type()
         fill_available_equb()
+        fill_unpaid_types_list()
         search_equb_entry.delete(0,END)
-        search_equb_entry.set(available_equb[-1])
+        if available_equb:
+            search_equb_entry.set(available_equb[0])
     def finish_equb():
         equb_name_and_type=f'{equb_name_entry.get()}-{equb_types_entry.get()}'
         db = sqlite3.connect(database_name)
@@ -1289,6 +1325,7 @@ def display_main_window():
         refresh_table_list()
         fill_table_equb_type()
         fill_available_equb()
+        fill_unpaid_types_list()
     def remove_equb():
         
         db = sqlite3.connect(database_name)
@@ -1309,8 +1346,10 @@ def display_main_window():
         refresh_table_list()
         fill_table_equb_type()
         fill_available_equb()
+        fill_unpaid_types_list()
         search_equb_entry.delete(0,END)
-        search_equb_entry.set(available_equb[-1])
+        if available_equb:
+            search_equb_entry.set(available_equb[0])
     def fill_types_list():
         result=fetch_data('*','equb_types')
         equb_type_list.clear()
@@ -1318,7 +1357,8 @@ def display_main_window():
             for i in result:
                 equb_type_list.append(i[1])
             equb_types_entry.config(values=equb_type_list)
-            equb_types_entry.set(equb_type_list[1])
+            if equb_type_list:
+                equb_types_entry.set(equb_type_list[0])
     def fill_equb_id_entry(event):
         db=sqlite3.connect(database_name)
         cursor=db.cursor()
@@ -1342,11 +1382,11 @@ def display_main_window():
             available_equb.append(f'{ids}/{name}')
             search_equb_entry.config(values=available_equb)
             
-    equb_label=ttk.Label(equb_settings_frame,text='ዕቑብ መመዝገቢ',font=('arial',14,'bold') ,foreground='blue')
-    equb_label.grid(row=0,column=0,sticky='w',padx=5,pady=5)
+    equb_label=ttk.Label(equb_settings_frame,text='ዕቑብ መመዝገቢ',font=('arial',14,'bold'),width=16 ,foreground='white',background='green')
+    equb_label.grid(row=0,column=0,sticky='w',padx=5,pady=10)
     # search_photo=PhotoImage(file='./image/search.png')
     search_equb_label=ttk.Label(equb_settings_frame,image=search_photo)
-    search_equb_label.grid(row=1,column=0,sticky='e',padx=5,pady=5)
+    search_equb_label.grid(row=1,column=0,sticky='e',padx=5,pady=3)
     search_equb_entry=ttk.Combobox(equb_settings_frame,width=21,values=available_equb)
     search_equb_entry.grid(row=1,column=0,sticky='w',padx=5,pady=5)
     search_equb_entry.bind('<Down>',lambda e:equb_id_entry.focus())
@@ -1354,47 +1394,47 @@ def display_main_window():
     search_equb_entry.bind('<FocusIn>',fill_equb_registration_entries_event)
     fill_available_equb()
     equb_id_label=ttk.Label(equb_settings_frame,text='መለለዪ ቁፅሪ')
-    equb_id_label.grid(row=2,column=0,sticky='w',padx=5,pady=5)
+    equb_id_label.grid(row=2,column=0,sticky='w',padx=5,pady=3)
     equb_id_entry=ttk.Entry(equb_settings_frame,width=30)
-    equb_id_entry.grid(row=3,column=0,sticky='e',padx=5,pady=5)
+    equb_id_entry.grid(row=3,column=0,sticky='e',padx=5,pady=3)
     equb_id_entry.bind('<Up>',lambda e:search_equb_entry.focus())
     equb_id_entry.bind('<Down>',lambda e:equb_name_entry.focus())
     equb_id_entry.bind('<FocusIn>',fill_equb_id_entry)
     
     equb_name_label=ttk.Label(equb_settings_frame,text='ሽም ዕቁብ')
-    equb_name_label.grid(row=4,column=0,sticky='w',padx=5,pady=5)
+    equb_name_label.grid(row=4,column=0,sticky='w',padx=5,pady=3)
     equb_name_entry=ttk.Entry(equb_settings_frame,width=30)
-    equb_name_entry.grid(row=5,column=0,sticky='e',padx=5,pady=5)
+    equb_name_entry.grid(row=5,column=0,sticky='e',padx=5,pady=3)
     equb_name_entry.bind('<Up>',lambda e:equb_id_entry.focus())
     equb_name_entry.bind('<Down>',lambda e:equb_types_entry.focus())
     
     equb_types_label=ttk.Label(equb_settings_frame,text='ዓይነት ዕቁብ')
-    equb_types_label.grid(row=6,column=0,sticky='w',padx=5,pady=5)
+    equb_types_label.grid(row=6,column=0,sticky='w',padx=5,pady=3)
     equb_types_entry=ttk.Combobox(equb_settings_frame,width=27,values=equb_type_list)
-    equb_types_entry.grid(row=7,column=0,sticky='e',padx=5,pady=5)
+    equb_types_entry.grid(row=7,column=0,sticky='e',padx=5,pady=3)
     equb_types_entry.bind('<Up>',lambda e:equb_name_entry.focus())
     equb_types_entry.bind('<Down>',lambda e:equb_amount_of_money_entry.focus())
     fill_types_list()
     equb_amount_of_money_label=ttk.Label(equb_settings_frame,text='መጠን ገንዘብ')
-    equb_amount_of_money_label.grid(row=8,column=0,sticky='w',padx=5,pady=5)
+    equb_amount_of_money_label.grid(row=8,column=0,sticky='w',padx=5,pady=3)
     equb_amount_of_money_entry=ttk.Entry(equb_settings_frame,width=30)
-    equb_amount_of_money_entry.grid(row=9,column=0,sticky='e',padx=5,pady=5)
+    equb_amount_of_money_entry.grid(row=9,column=0,sticky='e',padx=5,pady=3)
     equb_amount_of_money_entry.bind('<Up>',lambda e:equb_name_entry.focus())
     equb_amount_of_money_entry.bind('<Down>',lambda e:total_members_entry.focus())
     
     total_members_label=ttk.Label(equb_settings_frame,text='በዝሒ ዙር / ኣባላት')
-    total_members_label.grid(row=10,column=0,sticky='w',padx=5,pady=5)
+    total_members_label.grid(row=10,column=0,sticky='w',padx=5,pady=3)
     total_members_entry=ttk.Entry(equb_settings_frame,width=30)
-    total_members_entry.grid(row=11,column=0,sticky='e',padx=5,pady=5)
+    total_members_entry.grid(row=11,column=0,sticky='e',padx=5,pady=3)
     total_members_entry.bind('<Up>',lambda e:equb_amount_of_money_entry.focus())
     total_members_entry.bind('<Down>',lambda e:time_entry.focus())
     
     time_label=ttk.Label(equb_settings_frame,text='ዕጫ ዝጅመረሉ ዕለት  ')
-    time_label.grid(row=12,column=0,sticky='w',padx=5,pady=5)
+    time_label.grid(row=12,column=0,sticky='w',padx=5,pady=3)
     time_entry=ttk.Entry(equb_settings_frame,width=25)
-    time_entry.grid(row=13,column=0,sticky='w',padx=5,pady=5)
+    time_entry.grid(row=13,column=0,sticky='w',padx=5,pady=3)
     time_button=ttk.Label(equb_settings_frame,width=5,image=clock_photo)
-    time_button.grid(row=13,column=0,sticky='e',padx=5,pady=5)
+    time_button.grid(row=13,column=0,sticky='e',padx=5,pady=3)
     time_button.bind('<Button-1>',lambda e: fill_date(time_entry))
     time_entry.bind('<Up>',lambda e:total_members_entry.focus())
     # tax_entry.bind('<Down>',lambda e:choose_photo_button.focus())
@@ -1412,22 +1452,22 @@ def display_main_window():
     delete_equb_button=ttk.Button(equb_settings_frame,width=8,command=remove_equb,style='delete.TButton',text='ደምስስ')
     
     equb_finished_button=ttk.Button(equb_settings_frame,width=30,command=finish_equb,text='ዕቁብ ተወዲኡ')
-    equb_finished_button.grid(row=15,column=0,sticky='w',padx=2,pady=5)
+    equb_finished_button.grid(row=15,column=0,sticky='w',padx=2,pady=3)
     equb_registration_notfication_label=ttk.Label(equb_settings_frame,text='')
-    equb_registration_notfication_label.grid(row=16,column=0,padx=5,pady=1)
+    equb_registration_notfication_label.grid(row=16,column=0,padx=3,pady=1)
     def check_equb_qualification():
 
         if len(search_equb_entry.get())==0:
             save_equb_button.config(width=30)
-            save_equb_button.grid(row=14,column=0,sticky='w',padx=2,pady=5)
+            save_equb_button.grid(row=14,column=0,sticky='w',padx=2,pady=3)
             update_equb_button.grid_forget()
             delete_equb_button.grid_forget()
         else:
             save_equb_button.grid_forget()
             update_equb_button.config(width=14)
-            update_equb_button.grid(row=14,column=0,padx=2,sticky='w',pady=5)
+            update_equb_button.grid(row=14,column=0,padx=2,sticky='w',pady=3)
             delete_equb_button.config(width=14)
-            delete_equb_button.grid(row=14,column=0,sticky='e',padx=2,pady=5)
+            delete_equb_button.grid(row=14,column=0,sticky='e',padx=2,pady=3)
     check_equb_qualification()
     # ********************************* expiry date ************************************************
     def fetch_expiry_date():
@@ -2453,7 +2493,7 @@ def display_main_window():
     #         payment_search_label.config(image=search_photo)
     #         payment_search_entry.grid(row=1,column=0,padx=3,pady=3,sticky='e')
             
-    payment_title=ttk.Label(payment_frame,text='ክፍሊት መፈፀሚ ቕጥዒ',font=('arial',14,'bold') ,foreground='blue')
+    payment_title=ttk.Label(payment_frame,text='ክፍሊት መፈፀሚ ቕጥዒ',font=('arial',14,'bold'),width=20 ,foreground='white',background='green')
     payment_title.grid(row=0,column=0,padx=3,pady=5,sticky='w')
     payment_search_label=ttk.Label(payment_frame,image=search_photo)
     payment_search_label.grid(row=1,column=0,padx=3,pady=3,sticky='w')
@@ -2582,9 +2622,11 @@ def display_main_window():
             pass
     payment_punishment_label=ttk.Label(payment_frame,text='ቅፅዓት')
     payment_punishment_label.grid(row=13,column=0,padx=3,pady=3,sticky='w')
+    global payment_punishment_entry_list
     payment_punishment_entry_list=ttk.Combobox(payment_frame,width=20,values=punishment_list)
     payment_punishment_entry_list.grid(row=14,column=0,padx=3,pady=3,sticky='w')
-    payment_punishment_entry_list.set(punishment_list[-1])
+    if punishment_list:
+        payment_punishment_entry_list.set(punishment_list[0])
     payment_punishment_entry_list.bind('<KeyRelease>',lambda e:fill_punishment())
     payment_punishment_entry_list.bind('<FocusIn>',lambda e:fill_punishment())
     payment_punishment_entry=ttk.Entry(payment_frame,width=10)
@@ -2934,12 +2976,19 @@ def display_main_window():
             pass
     def fill_drawn_total_amount():
         # try:
+        customer_id=(drawn_customer_name_entry.get()).split('/')[0]
         db=sqlite3.connect(database_name)
         cursor=db.cursor()
-        cursor.execute(("""select sum(amount*reg_number_of_paid_lot) from equb_enrollment where 
-                        equb_type=(select id from equb_type where equb_type=?)"""),[(drawn_equb_type_entry.get())])
-        result=cursor.fetchone()
-        
+
+        # cursor.execute(("""select sum(amount*reg_number_of_paid_lot) from equb_enrollment where 
+        #                 equb_type=(select id from equb_type where equb_type=?)"""),[(drawn_equb_type_entry.get())])
+        # result=cursor.fetchone()
+        cursor.execute(("""select amount from equb_enrollment where 
+                        equb_type=(select id from equb_type where equb_type=?) and customer_id=?"""),[(drawn_equb_type_entry.get()),customer_id])
+        amount_result=cursor.fetchone()
+        cursor.execute(("""select total_round from equb_type where 
+                        id=(select id from equb_type where equb_type=?) """),[(drawn_equb_type_entry.get())])
+        total_round_result=cursor.fetchone()
         # cursor.execute(("""select sum(amount) from pay_list where 
         #                 equb_type_id=(select id from equb_type where equb_type=?) and customer_id=?"""),[drawn_equb_type_entry.get(),drawn_customer_name_entry.get().split('/')[0]])
         # result=cursor.fetchone()
@@ -2947,9 +2996,9 @@ def display_main_window():
         db.commit()
         db.close()
         
-        if result[0]!=None:
+        if amount_result!=None and total_round_result!=None:
             drawn_amount_entry.delete(0,END)
-            drawn_amount_entry.insert(END,result)
+            drawn_amount_entry.insert(END,(float(amount_result[0])*float(total_round_result[0])))
         else:
             drawn_amount_entry.delete(0,END)
         fill_current_round()
@@ -3092,8 +3141,8 @@ def display_main_window():
             drawn_equb_type_entry.config(values=drawn_equb_type)
             drawn_equb_type_entry.delete(0,END)
             drawn_equb_type_entry.insert(END,drawn_equb_type[0])
-    drawn_title=ttk.Label(drawn_frame,text='ዕጫ መውፅኢ ',font=('arial',15,'bold') ,foreground='blue')
-    drawn_title.grid(row=0,column=0,padx=20,pady=5,sticky='w')
+    drawn_title=ttk.Label(drawn_frame,text='ዕጫ መውፅኢ ',font=('arial',14,'bold') ,width=19,foreground='white',background='green')
+    drawn_title.grid(row=0,column=0,padx=3,pady=10,sticky='w')
 
     drawn_customer_name_label=ttk.Label(drawn_frame,text='ዕጫ ዝበፅሖ ዓሚል')
     drawn_customer_name_label.grid(row=2,column=0,padx=3,pady=3,sticky='w')
@@ -3119,7 +3168,7 @@ def display_main_window():
    
     drawn_equb_type_label=ttk.Label(drawn_profile_photo_frame,text='ዓይነት ዕቑብ ብምምራፅ ዕጫ ኣውድቑ!')
     drawn_equb_type_label.grid(row=0,column=0,padx=3,pady=3,sticky='w')
-    drawn_equb_type_entry=ttk.Combobox(drawn_profile_photo_frame,width=29,values=drawn_equb_type)
+    drawn_equb_type_entry=ttk.Combobox(drawn_profile_photo_frame,width=27,values=drawn_equb_type)
     drawn_equb_type_entry.grid(row=1,column=0,padx=3,pady=5,sticky='w')
     drawn_equb_type_entry.bind('<Up>',lambda e:drawn_customer_name_entry.focus())
     drawn_equb_type_entry.bind('<Down>',lambda e:drawn_date_entry.focus())
@@ -3894,6 +3943,8 @@ styles=ttk.Style()
 styles.configure('TLabel',foreground='black',background='white')
 styles.configure('Treeview',rowheight=48,fieldbackground='white')
 styles.configure('TNotebook',background='white')
+# styles.configure('TNotebook.Tab',font=('Arial',10,'bold'))
+# styles.map('TNotebook.Tab',background=[('active','black')],foreground=[('active','blue')])
 styles.configure('TFrame',background='white')
 styles.configure('TLabel',background='white')
 styles.configure('pink.TFrame',background='pink')
