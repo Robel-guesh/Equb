@@ -35,7 +35,7 @@ enrolled_customer_list=[]
 enrolled_equb_type=[]
 user_account_list=[]
 all_equb_list=[]
-punishmet_list=[]
+punishment_list=[]
 equb_state=['not_finished','finished']
 expire_date_list=['no']
 database_name='db/db.db'
@@ -88,11 +88,11 @@ def fetch_data_by_id(query,table_name,given_id):
         pass
 def fill_punishment_list():
     all_punishment_list=fetch_data('*','punishment')
-    punishmet_list.clear()
+    punishment_list.clear()
     
     for i in all_punishment_list:
-        if i not in punishmet_list:
-            punishmet_list.append(i[0])
+        if i not in punishment_list:
+            punishment_list.append(i[0])
     
 fill_punishment_list()
 def return_current_round(equb_type):
@@ -811,16 +811,85 @@ def display_main_window():
     global profile_frame
     profile_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=515)
     if logged_user_role=='super_admin':
-        profile_frame.grid(row=0,column=0,padx=20,sticky='n')
+        profile_frame.grid(row=0,column=0,padx=20,sticky='n',rowspan=2)
     else:
         profile_frame.grid_forget()
     user_profile_photo_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=515)
-    user_profile_photo_frame.grid(row=0,column=3,padx=20,sticky='n')
+    user_profile_photo_frame.grid(row=0,column=3,padx=20,sticky='n',rowspan=2)
     equb_settings_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=515)
-    equb_settings_frame.grid(row=0,column=1,padx=20,sticky='n')
+    equb_settings_frame.grid(row=0,column=1,padx=20,sticky='n',rowspan=2)
     
-    expire_date_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=515)
+    expire_date_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=250)
+    def configure_punishment(order):
+        punishment_type_entry.get()
+        punishment_amount_entry.get()
+       
+        punishment_id=punishment_entry.get().split('/')[0]
+        db=sqlite3.connect(database_name)
+        cursor=db.cursor()
+        if order=='add':
+            print('add')
+            cursor.execute('insert into punishment () values ?,?',[punishment_type_entry.get(),punishment_amount_entry.get()])
+        elif order=='update':
+            print('update')
+            cursor.execute()
+        elif order=='delete':
+            print('delete')
+            cursor.execute()
+            
+        cursor.close()
+        db.commit()
+        db.close()
+        
+    def check_punishment_button():
+
+        if len(punishment_entry.get())>0:
+            punishment_add_button.grid_forget()
+            punishment_delete_button.config(width=15)
+            punishment_update_button.config(width=15)
+            punishment_delete_button.grid(row=6,column=1,padx=2,pady=5,sticky='e')
+            punishment_update_button.grid(row=6,column=1,padx=2,pady=5,sticky='w')
+        
+        else:
+            punishment_add_button.config(width=32)
+            punishment_add_button.grid(row=6,column=1,padx=2,pady=5,sticky='w')
+            punishment_delete_button.grid_forget()
+            punishment_update_button.grid_forget()
+    def fill_punishment_entries():
+        check_punishment_button()
+        punishment_type_entry.delete(0,END)
+        punishment_amount_entry.delete(0,END)
+        punishment_type=punishment_entry.get().split('/')[1]
+        punishment_id=punishment_entry.get().split('/')[0]
+        punishment_type_entry.insert(END,punishment_type)
+    punishment_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=250)
+    punishment_frame.grid(row=1,column=2,padx=20,pady=30,sticky='n')
+    punishment_title_label=ttk.Label(punishment_frame,width=22,background='green',text='ናይ ቅፅዓት ሕጊ መመዝገቢ',foreground='white',font=('Arial',12,'bold'))
+    punishment_title_label.grid(row=0,column=1,padx=5,pady=5,sticky='w')
     
+    punishment_entry=ttk.Combobox(punishment_frame,width=23,values=punishment_list)
+    punishment_entry.grid(row=1,column=1,padx=5,pady=5,sticky='w')
+    punishment_entry.set(punishment_list[0])
+    punishment_entry.bind('<FucusIn>',lambda e:fill_punishment_entries())
+    punishment_entry.bind('<KeyRelease>',lambda e:fill_punishment_entries())
+    punishment_search_label=ttk.Label(punishment_frame,image=search_photo)
+    punishment_search_label.grid(row=1,column=1,padx=5,pady=5,sticky='e')
+    punishment_type_label=ttk.Label(punishment_frame,text='ዓይነት ቅፅዓት')
+    punishment_type_label.grid(row=2,column=1,padx=5,pady=5,sticky='w')
+    punishment_type_entry=ttk.Entry(punishment_frame,width=33)
+    punishment_type_entry.grid(row=3,column=1,padx=5,pady=5,sticky='w')
+    punishment_amount_label=ttk.Label(punishment_frame,text='መጠን ቅፅዓት ብ ብር')
+    punishment_amount_label.grid(row=4,column=1,padx=5,pady=5,sticky='w')
+    punishment_amount_entry=ttk.Entry(punishment_frame,width=33)
+    punishment_amount_entry.grid(row=5,column=1,padx=5,pady=5,sticky='w')
+
+    punishment_add_button=ttk.Button(punishment_frame,text='መዝግብ',width=9,command=lambda :configure_punishment('add'))
+    
+    punishment_update_button=ttk.Button(punishment_frame,text='ኣመሓይሽ',width=9,command=lambda :configure_punishment('update'))
+    
+    punishment_delete_button=ttk.Button(punishment_frame,text='ኣጥፍእ',width=9,command=lambda :configure_punishment('delete'))
+    
+    check_punishment_button()
     if logged_user_role=='super_admin':
         expire_date_frame.grid(row=0,column=2,padx=20,pady=30,sticky='n')
     else:
@@ -2316,10 +2385,13 @@ def display_main_window():
         except:
             pass
     def scan_and_fill_customer():
-        scanned_value=scan_qrcode()
-        payment_customer_name_entry.delete(0,END)
-        payment_customer_name_entry.insert(END,scanned_value)
-        payment_customer_name_entry.focus()
+        try:
+            scanned_value=scan_qrcode()
+            payment_customer_name_entry.delete(0,END)
+            payment_customer_name_entry.insert(END,scanned_value)
+            payment_customer_name_entry.focus()
+        except:
+            pass
     def fill_reached_round():
         reached_round=return_current_round(payment_equb_type_entry.get())[0]
         if reached_round:
@@ -2495,9 +2567,9 @@ def display_main_window():
             pass
     payment_punishment_label=ttk.Label(payment_frame,text='ቅፅዓት')
     payment_punishment_label.grid(row=13,column=0,padx=3,pady=3,sticky='w')
-    payment_punishment_entry_list=ttk.Combobox(payment_frame,width=20,values=punishmet_list)
+    payment_punishment_entry_list=ttk.Combobox(payment_frame,width=20,values=punishment_list)
     payment_punishment_entry_list.grid(row=14,column=0,padx=3,pady=3,sticky='w')
-    payment_punishment_entry_list.set(punishmet_list[-1])
+    payment_punishment_entry_list.set(punishment_list[-1])
     payment_punishment_entry_list.bind('<KeyRelease>',lambda e:fill_punishment())
     payment_punishment_entry_list.bind('<FocusIn>',lambda e:fill_punishment())
     payment_punishment_entry=ttk.Entry(payment_frame,width=10)
