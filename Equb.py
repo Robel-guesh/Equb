@@ -830,17 +830,19 @@ def display_main_window():
         cursor=db.cursor()
         if order=='add':
             
-            cursor.execute('insert into punishment (punishment_name,punishment_amount) values ?,?',[punishment_type_entry.get(),punishment_amount_entry.get()])
+            cursor.execute('insert into punishment (punishment_name,punishment_amount) values ?,?',([punishment_type_entry.get(),punishment_amount_entry.get()]))
             fill_punishment_list()
-            punishment_info_label.config(text='ብትኽክል ተመዝጊብቡ')
+            punishment_info_label.config(text='ብትኽክል ተመዝጊቡ')
         elif order=='update':
             
-            cursor.execute('update punishment set punishment_name=?,punishment_amount=? where oid',[punishment_type_entry.get(),punishment_amount_entry.get(),punishment_id])
+            cursor.execute('update punishment set punishment_name=?,punishment_amount=? where oid=?',([punishment_type_entry.get(),punishment_amount_entry.get(),punishment_id]))
             fill_punishment_list()
+            punishment_info_label.config(text='ብትኽክል ተመዝጊቡ')
         elif order=='delete':
             
-            cursor.execute('delete from punishment where oid',[punishment_id])
+            cursor.execute('delete from punishment where oid=?',([punishment_id]))
             fill_punishment_list()
+            punishment_info_label.config(text='ብትኽክል ተመዝጊቡ')
         cursor.close()
         db.commit()
         db.close()
@@ -899,6 +901,8 @@ def display_main_window():
     punishment_update_button=ttk.Button(punishment_frame,text='ኣመሓይሽ',width=9,command=lambda :configure_punishment('update'))
     
     punishment_delete_button=ttk.Button(punishment_frame,text='ኣጥፍእ',width=9,command=lambda :configure_punishment('delete'))
+    punishment_info_label=ttk.Label(punishment_frame,text='')
+    punishment_info_label.grid(row=7,column=1,padx=2,pady=5,sticky='w')
     
     check_punishment_button()
     if logged_user_role=='super_admin':
