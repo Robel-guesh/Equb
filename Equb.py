@@ -36,6 +36,7 @@ enrolled_equb_type=[]
 user_account_list=[]
 all_equb_list=[]
 punishment_list=[]
+my_punishment_list=[]
 equb_state=['not_finished','finished']
 expire_date_list=['no']
 database_name='db/db.db'
@@ -74,11 +75,11 @@ def fetch_data_like(query,table_name,filter_by,like_value):
     cursor.close()
     db.commit()
     db.close()
-def fetch_data_by_id(query,table_name,given_id):
+def fetch_data_by_id(query,table_name,given_id,filter_by='id'):
     try:
         db = sqlite3.connect(database_name)
         cursor = db.cursor()
-        cursor.execute((f'select {query} from {table_name} where id=?'),[given_id])
+        cursor.execute((f'select {query} from {table_name} where {filter_by}=?'),[given_id])
         result=cursor.fetchone()
         return result
         cursor.close()
@@ -87,13 +88,13 @@ def fetch_data_by_id(query,table_name,given_id):
     except:
         pass
 def fill_punishment_list():
-    all_punishment_list=fetch_data('*','punishment')
+    all_punishment_list=fetch_data('oid,*','punishment')
     punishment_list.clear()
-    
+    my_punishment_list.clear()
     for i in all_punishment_list:
         if i not in punishment_list:
-            punishment_list.append(i[0])
-    
+            punishment_list.append(i[1])
+            my_punishment_list.append(f'{i[0]} / {i[1]}')
 fill_punishment_list()
 def return_current_round(equb_type):
     
@@ -828,21 +829,24 @@ def display_main_window():
         db=sqlite3.connect(database_name)
         cursor=db.cursor()
         if order=='add':
-            print('add')
-            cursor.execute('insert into punishment () values ?,?',[punishment_type_entry.get(),punishment_amount_entry.get()])
-        elif order=='update':
-            print('update')
-            cursor.execute()
-        elif order=='delete':
-            print('delete')
-            cursor.execute()
             
+            cursor.execute('insert into punishment (punishment_name,punishment_amount) values ?,?',[punishment_type_entry.get(),punishment_amount_entry.get()])
+            fill_punishment_list()
+            punishment_info_label.config(text='ብትኽክል ተመዝጊብቡ')
+        elif order=='update':
+            
+            cursor.execute('update punishment set punishment_name=?,punishment_amount=? where oid',[punishment_type_entry.get(),punishment_amount_entry.get(),punishment_id])
+            fill_punishment_list()
+        elif order=='delete':
+            
+            cursor.execute('delete from punishment where oid',[punishment_id])
+            fill_punishment_list()
         cursor.close()
         db.commit()
         db.close()
-        
+    
     def check_punishment_button():
-
+        
         if len(punishment_entry.get())>0:
             punishment_add_button.grid_forget()
             punishment_delete_button.config(width=15)
@@ -857,20 +861,27 @@ def display_main_window():
             punishment_update_button.grid_forget()
     def fill_punishment_entries():
         check_punishment_button()
-        punishment_type_entry.delete(0,END)
-        punishment_amount_entry.delete(0,END)
-        punishment_type=punishment_entry.get().split('/')[1]
         punishment_id=punishment_entry.get().split('/')[0]
-        punishment_type_entry.insert(END,punishment_type)
+        data=fetch_data_by_id('oid,*','punishment',punishment_id,'oid')
+        punishment_type_entry.delete(0,END)
+        punishment_type_entry.insert(END,data[1])
+        punishment_amount_entry.delete(0,END)
+        punishment_amount_entry.insert(END,data[2])
+        # punishment_type_entry.delete(0,END)
+        # punishment_amount_entry.delete(0,END)
+        # punishment_type=punishment_entry.get().split('/')[1]
+        # punishment_id=punishment_entry.get().split('/')[0]
+        # punishment_type_entry.insert(END,punishment_type)
+        
     punishment_frame=ttk.Frame(equb_management_frame,width=int(screen_width*0.25),height=250)
     punishment_frame.grid(row=1,column=2,padx=20,pady=30,sticky='n')
     punishment_title_label=ttk.Label(punishment_frame,width=22,background='green',text='ናይ ቅፅዓት ሕጊ መመዝገቢ',foreground='white',font=('Arial',12,'bold'))
     punishment_title_label.grid(row=0,column=1,padx=5,pady=5,sticky='w')
     
-    punishment_entry=ttk.Combobox(punishment_frame,width=23,values=punishment_list)
+    punishment_entry=ttk.Combobox(punishment_frame,width=23,values=my_punishment_list)
     punishment_entry.grid(row=1,column=1,padx=5,pady=5,sticky='w')
-    punishment_entry.set(punishment_list[0])
-    punishment_entry.bind('<FucusIn>',lambda e:fill_punishment_entries())
+    punishment_entry.set(my_punishment_list[0])
+    punishment_entry.bind('<FocusIn>',lambda e:fill_punishment_entries())
     punishment_entry.bind('<KeyRelease>',lambda e:fill_punishment_entries())
     punishment_search_label=ttk.Label(punishment_frame,image=search_photo)
     punishment_search_label.grid(row=1,column=1,padx=5,pady=5,sticky='e')
